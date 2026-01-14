@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   created_at?: string;
+  isGuest?: boolean;
 }
 
 export interface Blog {
@@ -12,6 +13,7 @@ export interface Blog {
   author_email: string;
   created_at: string;
   updated_at: string;
+  is_guest_post?: boolean;
 }
 
 export interface AuthState {
