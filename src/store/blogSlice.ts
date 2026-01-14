@@ -9,14 +9,16 @@ const initialState: BlogState = {
   error: null,
 };
 
+// Fetch all blogs
 export const fetchBlogs = createAsyncThunk(
-  'blog/fetchBlogs',
+  'blogs/fetchBlogs',
   async (_, { rejectWithValue }) => {
     try {
       const { data, error } = await supabase
         .from('blogs')
         .select('*')
         .order('created_at', { ascending: false });
+
       if (error) throw error;
       return data as Blog[];
     } catch (error: any) {
@@ -25,8 +27,9 @@ export const fetchBlogs = createAsyncThunk(
   }
 );
 
-export const fetchBlogById = createAsyncThunk(
-  'blog/fetchBlogById',
+// Fetch single blog
+export const fetchBlog = createAsyncThunk(
+  'blogs/fetchBlog',
   async (id: string, { rejectWithValue }) => {
     try {
       const { data, error } = await supabase
@@ -34,6 +37,7 @@ export const fetchBlogById = createAsyncThunk(
         .select('*')
         .eq('id', id)
         .single();
+
       if (error) throw error;
       return data as Blog;
     } catch (error: any) {
@@ -42,18 +46,28 @@ export const fetchBlogById = createAsyncThunk(
   }
 );
 
+// Create blog
 export const createBlog = createAsyncThunk(
-  'blog/createBlog',
-  async ({ title, content }: { title: string; content: string }, { rejectWithValue }) => {
+  'blogs/createBlog',
+  async (blogData: { title: string; content: string }, { rejectWithValue }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('blogs')
-        .insert([{ title, content, author_id: user.id, author_email: user.email }])
+        .insert([
+          {
+            title: blogData.title,
+            content: blogData.content,
+            author_id: user.id,
+            author_email: user.email,
+          },
+        ])
         .select()
         .single();
+
       if (error) throw error;
       return data as Blog;
     } catch (error: any) {
@@ -62,9 +76,13 @@ export const createBlog = createAsyncThunk(
   }
 );
 
+// Update blog
 export const updateBlog = createAsyncThunk(
-  'blog/updateBlog',
-  async ({ id, title, content }: { id: string; title: string; content: string }, { rejectWithValue }) => {
+  'blogs/updateBlog',
+  async (
+    { id, title, content }: { id: string; title: string; content: string },
+    { rejectWithValue }
+  ) => {
     try {
       const { data, error } = await supabase
         .from('blogs')
@@ -72,6 +90,7 @@ export const updateBlog = createAsyncThunk(
         .eq('id', id)
         .select()
         .single();
+
       if (error) throw error;
       return data as Blog;
     } catch (error: any) {
@@ -80,14 +99,16 @@ export const updateBlog = createAsyncThunk(
   }
 );
 
+// Delete blog
 export const deleteBlog = createAsyncThunk(
-  'blog/deleteBlog',
+  'blogs/deleteBlog',
   async (id: string, { rejectWithValue }) => {
     try {
       const { error } = await supabase
         .from('blogs')
         .delete()
         .eq('id', id);
+
       if (error) throw error;
       return id;
     } catch (error: any) {
@@ -97,7 +118,7 @@ export const deleteBlog = createAsyncThunk(
 );
 
 const blogSlice = createSlice({
-  name: 'blog',
+  name: 'blogs',
   initialState,
   reducers: {
     clearCurrentBlog: (state) => {
@@ -109,6 +130,7 @@ const blogSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Fetch all blogs
       .addCase(fetchBlogs.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -121,18 +143,20 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchBlogById.pending, (state) => {
+      // Fetch single blog
+      .addCase(fetchBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchBlogById.fulfilled, (state, action: PayloadAction<Blog>) => {
+      .addCase(fetchBlog.fulfilled, (state, action: PayloadAction<Blog>) => {
         state.loading = false;
         state.currentBlog = action.payload;
       })
-      .addCase(fetchBlogById.rejected, (state, action) => {
+      .addCase(fetchBlog.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Create blog
       .addCase(createBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -145,29 +169,36 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Update blog
       .addCase(updateBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(updateBlog.fulfilled, (state, action: PayloadAction<Blog>) => {
         state.loading = false;
-        const index = state.blogs.findIndex(blog => blog.id === action.payload.id);
+        const index = state.blogs.findIndex((blog: Blog) => blog.id === action.payload.id);
         if (index !== -1) {
           state.blogs[index] = action.payload;
         }
-        state.currentBlog = action.payload;
+        if (state.currentBlog?.id === action.payload.id) {
+          state.currentBlog = action.payload;
+        }
       })
       .addCase(updateBlog.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Delete blog
       .addCase(deleteBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(deleteBlog.fulfilled, (state, action: PayloadAction<string>) => {
         state.loading = false;
-        state.blogs = state.blogs.filter(blog => blog.id !== action.payload);
+        state.blogs = state.blogs.filter((blog: Blog) => blog.id !== action.payload);
+        if (state.currentBlog?.id === action.payload) {
+          state.currentBlog = null;
+        }
       })
       .addCase(deleteBlog.rejected, (state, action) => {
         state.loading = false;
