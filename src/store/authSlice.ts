@@ -34,12 +34,41 @@ export const login = createAsyncThunk(
   }
 );
 
+export const guestLogin = createAsyncThunk(
+  'auth/guestLogin',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Create a guest user object for local state
+      const guestUser: User = {
+        id: 'guest-' + Date.now(),
+        email: 'guest@anonymous.com',
+        isGuest: true,
+      };
+      
+      // Store guest status in localStorage
+      localStorage.setItem('guestUser', JSON.stringify(guestUser));
+      
+      return guestUser;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      const guestUser = localStorage.getItem('guestUser');
+      
+      if (guestUser) {
+        // Clear guest user from localStorage
+        localStorage.removeItem('guestUser');
+      } else {
+        // Regular user logout
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      }
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -50,6 +79,13 @@ export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
+      // Check for guest user first
+      const guestUser = localStorage.getItem('guestUser');
+      if (guestUser) {
+        return JSON.parse(guestUser) as User;
+      }
+      
+      // Check for regular authenticated user
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) throw error;
       return user as User;
@@ -90,6 +126,18 @@ const authSlice = createSlice({
         state.user = action.payload;
       })
       .addCase(login.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(guestLogin.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(guestLogin.fulfilled, (state, action: PayloadAction<User>) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(guestLogin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })

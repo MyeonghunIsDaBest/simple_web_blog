@@ -49,11 +49,27 @@ export const fetchBlog = createAsyncThunk(
 // Create blog
 export const createBlog = createAsyncThunk(
   'blogs/createBlog',
-  async (blogData: { title: string; content: string }, { rejectWithValue }) => {
+  async (blogData: { title: string; content: string; isGuest?: boolean }, { rejectWithValue }) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      let userId = '';
+      let userEmail = '';
+      let isGuestPost = false;
+
+      // Check if user is a guest
+      const guestUser = localStorage.getItem('guestUser');
       
-      if (!user) throw new Error('User not authenticated');
+      if (guestUser) {
+        const guest = JSON.parse(guestUser);
+        userId = guest.id;
+        userEmail = 'Anonymous';
+        isGuestPost = true;
+      } else {
+        // Get authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+        userId = user.id;
+        userEmail = user.email || 'Unknown';
+      }
 
       const { data, error } = await supabase
         .from('blogs')
@@ -61,8 +77,9 @@ export const createBlog = createAsyncThunk(
           {
             title: blogData.title,
             content: blogData.content,
-            author_id: user.id,
-            author_email: user.email,
+            author_id: userId,
+            author_email: userEmail,
+            is_guest_post: isGuestPost,
           },
         ])
         .select()

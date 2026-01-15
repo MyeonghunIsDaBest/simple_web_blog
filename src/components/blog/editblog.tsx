@@ -39,32 +39,40 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
       await dispatch(updateBlog({ id: blogId, title, content })).unwrap();
       onBack();
     } catch (err: any) {
-      setError(err || 'Failed to update blog');
+      setError(err || 'Failed to update post');
     }
   };
 
-  if (loading) {
+  if (loading && !currentBlog) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">Loading...</div>
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-gray-600">Loading...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-3xl font-bold mb-6">Edit Blog</h1>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Edit Post
+          </h1>
+          <p className="text-gray-600 mt-1">Make changes to your post</p>
+        </div>
         
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="title" className="block text-gray-700 font-semibold mb-2">
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-6 rounded-lg">
+          <div className="mb-5">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               Title
             </label>
             <input
@@ -72,13 +80,13 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter blog title"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Post title"
             />
           </div>
 
           <div className="mb-6">
-            <label htmlFor="content" className="block text-gray-700 font-semibold mb-2">
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
               Content
             </label>
             <textarea
@@ -86,23 +94,26 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={12}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Write your blog content here..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="Write your post content..."
             />
+            <div className="mt-2 text-xs text-gray-500">
+              {content.length} characters
+            </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+              className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-md font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Updating...' : 'Update Blog'}
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              className="px-4 py-2.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>

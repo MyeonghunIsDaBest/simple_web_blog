@@ -9,42 +9,53 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onNavigate }) => {
   return (
-    <nav className="bg-blue-600 text-white shadow-lg">
-      <div className="container mx-auto px-4 py-4">
+    <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <h1 
-              className="text-2xl font-bold cursor-pointer"
+              className="text-xl font-semibold text-gray-900 cursor-pointer hover:text-gray-700 transition-colors"
               onClick={() => user && onNavigate('list')}
             >
-              BlogApp
+              Simple Blogsite
             </h1>
             {user && (
-              <div className="flex gap-4">
+              <div className="flex gap-1">
                 <button
                   onClick={() => onNavigate('list')}
-                  className="hover:text-blue-200 transition-colors"
+                  className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                 >
-                  All Blogs
+                  All Posts
                 </button>
                 <button
                   onClick={() => onNavigate('create')}
-                  className="hover:text-blue-200 transition-colors"
+                  className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                 >
-                  Create Blog
+                  Write
                 </button>
               </div>
             )}
           </div>
           
           {user && (
-            <div className="flex items-center gap-4">
-              <span className="text-sm">{user.email}</span>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-600">
+                {user.isGuest ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                      Guest
+                    </span>
+                    Anonymous
+                  </span>
+                ) : (
+                  <span>{user.email}</span>
+                )}
+              </div>
               <button
                 onClick={onLogout}
-                className="bg-blue-700 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors"
+                className="text-sm px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
               >
-                Logout
+                Sign out
               </button>
             </div>
           )}
