@@ -49,20 +49,18 @@ export const fetchBlog = createAsyncThunk(
 // Create blog
 export const createBlog = createAsyncThunk(
   'blogs/createBlog',
-  async (blogData: { title: string; content: string; isGuest?: boolean }, { rejectWithValue }) => {
+  async (blogData: { title: string; content: string }, { rejectWithValue }) => {
     try {
       let userId = '';
       let userEmail = '';
-      let isGuestPost = false;
 
       // Check if user is a guest
       const guestUser = localStorage.getItem('guestUser');
       
       if (guestUser) {
         const guest = JSON.parse(guestUser);
-        userId = guest.id;
+        userId = guest.id; // Now this will be a valid UUID
         userEmail = 'Anonymous';
-        isGuestPost = true;
       } else {
         // Get authenticated user
         const { data: { user } } = await supabase.auth.getUser();
@@ -79,7 +77,6 @@ export const createBlog = createAsyncThunk(
             content: blogData.content,
             author_id: userId,
             author_email: userEmail,
-            is_guest_post: isGuestPost,
           },
         ])
         .select()

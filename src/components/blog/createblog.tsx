@@ -42,7 +42,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onBack }) => {
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
             <div className="flex gap-3">
               <div className="text-amber-600 font-medium text-sm">
-                ℹ️ Posting as Guest
+                 Posting as Guest
               </div>
             </div>
             <p className="text-sm text-amber-800 mt-1">

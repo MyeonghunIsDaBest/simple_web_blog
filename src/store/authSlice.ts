@@ -8,6 +8,12 @@ const initialState: AuthState = {
   error: null,
 };
 
+// Helper function to generate a valid UUID v4
+function generateGuestUUID(): string {
+  return '00000000-0000-4000-8000-' + 
+    Date.now().toString(16).padStart(12, '0').slice(-12);
+}
+
 export const register = createAsyncThunk(
   'auth/register',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
@@ -38,9 +44,9 @@ export const guestLogin = createAsyncThunk(
   'auth/guestLogin',
   async (_, { rejectWithValue }) => {
     try {
-      // Create a guest user object for local state
+      // Create a guest user object with a valid UUID
       const guestUser: User = {
-        id: 'guest-' + Date.now(),
+        id: generateGuestUUID(),
         email: 'guest@anonymous.com',
         isGuest: true,
       };
