@@ -311,9 +311,12 @@ export const fetchComments = createAsyncThunk(
       }
 
       // Get unique author IDs (excluding null for guest comments)
-      const authorIds = [...new Set(commentsData
-        .map(c => c.author_id)
-        .filter((id): id is string => id !== null))];
+      const authorIdsSet = new Set(
+        commentsData
+          .map(c => c.author_id)
+          .filter((id): id is string => id !== null)
+      );
+      const authorIds = Array.from(authorIdsSet);
 
       // Fetch profiles for all authors
       let profilesMap = new Map();
