@@ -252,7 +252,7 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                   <div className="flex justify-center">
                     <img
                       src={currentBlog.image_urls[0]}
-                      alt="Post image"
+                      alt={currentBlog.title}
                       className="max-w-full h-auto max-h-[32rem] object-contain rounded-xl border border-gray-200 shadow-md"
                     />
                   </div>

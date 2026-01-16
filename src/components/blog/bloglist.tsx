@@ -134,7 +134,7 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
                             <div className="max-w-2xl w-full">
                               <img
                                 src={blog.image_urls[0]}
-                                alt="Post image"
+                                alt={blog.title}
                                 className="w-full h-auto max-h-96 object-contain rounded-lg border border-gray-200 shadow-sm"
                               />
                             </div>
