@@ -297,27 +297,49 @@ export const fetchComments = createAsyncThunk(
   'blogs/fetchComments',
   async (blogId: string, { rejectWithValue }) => {
     try {
-      const { data, error } = await supabase
+      // First, fetch all comments for this blog
+      const { data: commentsData, error } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles:author_id (
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('blog_id', blogId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
       
-      // Map the joined data to our Comment type
-      const comments = data.map((comment: any) => ({
-        ...comment,
-        author_username_profile: comment.profiles?.username,
-        author_avatar_url: comment.profiles?.avatar_url,
-        author_avatar: comment.profiles?.avatar_url,
-      }));
+      if (!commentsData || commentsData.length === 0) {
+        return [];
+      }
+
+      // Get unique author IDs (excluding null for guest comments)
+      const authorIds = [...new Set(commentsData
+        .map(c => c.author_id)
+        .filter((id): id is string => id !== null))];
+
+      // Fetch profiles for all authors
+      let profilesMap = new Map();
+      if (authorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', authorIds);
+        
+        if (profiles) {
+          profiles.forEach(profile => {
+            profilesMap.set(profile.id, profile);
+          });
+        }
+      }
+
+      // Map the profile data to comments
+      const comments = commentsData.map((comment: any) => {
+        const profile = comment.author_id ? profilesMap.get(comment.author_id) : null;
+        return {
+          ...comment,
+          author_username_profile: profile?.username || null,
+          author_avatar_url: profile?.avatar_url || null,
+          author_avatar: profile?.avatar_url || null,
+        };
+      });
       
       return comments as Comment[];
     } catch (error: any) {

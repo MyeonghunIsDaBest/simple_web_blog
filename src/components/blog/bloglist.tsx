@@ -146,16 +146,23 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
                     )}
 
                     {/* Show like and comment counts if available */}
-                    {(blog.like_count !== undefined || blog.comment_count !== undefined) && (
+                    {(blog.like_count !== undefined || blog.comment_count !== undefined || blog.view_count > 0) && (
                       <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-sm text-gray-500">
                         {blog.like_count !== undefined && blog.like_count > 0 && (
-                          <span>❤️ {blog.like_count}</span>
+                          <span className="flex items-center gap-1">
+                            <span className="text-blue-600">👍</span>
+                            {blog.like_count}
+                          </span>
                         )}
                         {blog.comment_count !== undefined && blog.comment_count > 0 && (
-                          <span>💬 {blog.comment_count}</span>
+                          <span className="flex items-center gap-1">
+                            💬 {blog.comment_count} {blog.comment_count === 1 ? 'comment' : 'comments'}
+                          </span>
                         )}
                         {blog.view_count > 0 && (
-                          <span>👁️ {blog.view_count}</span>
+                          <span className="flex items-center gap-1">
+                            👁️ {blog.view_count} {blog.view_count === 1 ? 'view' : 'views'}
+                          </span>
                         )}
                       </div>
                     )}
