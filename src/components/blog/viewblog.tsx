@@ -22,7 +22,7 @@ interface ViewBlogProps {
 const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { currentBlog, comments, loading } = useSelector((state: RootState) => state.blog);
-  const { user, profile } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const [commentContent, setCommentContent] = useState('');
   const [commentImages, setCommentImages] = useState<File[]>([]);
   const [isLiked, setIsLiked] = useState(false);
@@ -250,7 +250,7 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                   <img
                     key={index}
                     src={url}
-                    alt={`Post image ${index + 1}`}
+                    alt={`Post ${index + 1}`}
                     className="w-full rounded-lg border border-gray-200"
                   />
                 ))}
@@ -388,7 +388,7 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                               <img
                                 key={index}
                                 src={url}
-                                alt={`Comment image ${index + 1}`}
+                                alt={`Comment attachment ${index + 1}`}
                                 className="w-full h-32 object-cover rounded border border-gray-300"
                               />
                             ))}

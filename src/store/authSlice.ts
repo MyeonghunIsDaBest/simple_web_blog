@@ -70,7 +70,7 @@ export const register = createAsyncThunk(
       const maxAttempts = 5;
       
       while (attempts < maxAttempts) {
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
@@ -202,7 +202,7 @@ export const checkAuth = createAsyncThunk(
       }
       
       // Fetch user's profile - use maybeSingle to avoid errors
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
