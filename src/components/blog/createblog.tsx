@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createBlog } from '../../store/blogSlice';
 import { AppDispatch, RootState } from '../../store';
+import ImageUpload from '../common/imageupload';
 
 interface CreateBlogProps {
   onBack: () => void;
@@ -10,13 +11,14 @@ interface CreateBlogProps {
 const CreateBlog: React.FC<CreateBlogProps> = ({ onBack }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [images, setImages] = useState<File[]>([]);
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.blog);
   const { user } = useSelector((state: RootState) => state.auth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await dispatch(createBlog({ title, content }));
+    const result = await dispatch(createBlog({ title, content, images }));
     if (createBlog.fulfilled.match(result)) {
       onBack();
     }
@@ -42,7 +44,7 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onBack }) => {
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
             <div className="flex gap-3">
               <div className="text-amber-600 font-medium text-sm">
-                 Posting as Guest
+                📝 Posting as Guest
               </div>
             </div>
             <p className="text-sm text-amber-800 mt-1">
@@ -63,7 +65,8 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onBack }) => {
               required
             />
           </div>
-          <div className="mb-6">
+
+          <div className="mb-5">
             <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
             <textarea
               value={content}
@@ -76,6 +79,16 @@ const CreateBlog: React.FC<CreateBlogProps> = ({ onBack }) => {
             <div className="mt-2 text-xs text-gray-500">
               {content.length} characters
             </div>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Images (Optional)</label>
+            <ImageUpload
+              images={images}
+              onImagesChange={setImages}
+              maxImages={5}
+              maxSizeMB={5}
+            />
           </div>
           
           {error && (

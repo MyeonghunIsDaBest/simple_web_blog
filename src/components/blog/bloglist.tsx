@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBlogs } from '../../store/blogSlice';
 import { RootState, AppDispatch } from '../../store';
@@ -9,12 +9,9 @@ interface BlogListProps {
   onCreateBlog: () => void;
 }
 
-const POSTS_PER_PAGE = 10;
-
 const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { blogs, loading, error } = useSelector((state: RootState) => state.blog);
-  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     dispatch(fetchBlogs());
@@ -22,27 +19,6 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
 
   const handleBlogClick = (id: string) => {
     onViewBlog(id);
-  };
-
-  // Calculate pagination
-  const totalPages = Math.ceil(blogs.length / POSTS_PER_PAGE);
-  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-  const endIndex = startIndex + POSTS_PER_PAGE;
-  const currentBlogs = blogs.slice(startIndex, endIndex);
-
-  const handlePrevPage = () => {
-    setCurrentPage(prev => Math.max(1, prev - 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(totalPages, prev + 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handlePageClick = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -74,9 +50,7 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
             <h1 className="text-3xl font-bold text-gray-900">
               All Posts
             </h1>
-            <p className="text-gray-600 mt-1">
-              {blogs.length} {blogs.length === 1 ? 'post' : 'posts'} total
-            </p>
+            <p className="text-gray-600 mt-1">Read stories from our community</p>
           </div>
           <button
             onClick={onCreateBlog}
@@ -93,83 +67,81 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
             <p className="text-gray-500">Be the first to share something!</p>
           </div>
         ) : (
-          <>
-            <div className="space-y-4 mb-8">
-              {currentBlogs.map((blog: Blog) => (
-                <div
-                  key={blog.id}
-                  className="bg-white border border-gray-200 p-6 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => handleBlogClick(blog.id)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h2 className="text-xl font-semibold text-gray-900 line-clamp-2 flex-1">
-                      {blog.title}
-                    </h2>
-                    {blog.is_guest_post && (
-                      <span className="ml-3 bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-medium whitespace-nowrap">
-                        Guest
-                      </span>
-                    )}
+          <div className="space-y-4">
+            {blogs.map((blog: Blog) => (
+              <div
+                key={blog.id}
+                className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden"
+                onClick={() => handleBlogClick(blog.id)}
+              >
+                <div className="p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      {blog.author_avatar ? (
+                        <img
+                          src={blog.author_avatar}
+                          alt={blog.author_username || 'User'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          {blog.author_username || blog.author_email || 'Anonymous'}
+                        </span>
+                        {blog.is_guest_post && (
+                          <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded font-medium">
+                            Guest
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {new Date(blog.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </div>
+                    </div>
                   </div>
+
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {blog.title}
+                  </h2>
                   
-                  <p className="text-gray-600 mb-4 line-clamp-2 text-sm">
+                  <p className="text-gray-600 mb-3 line-clamp-2 text-sm">
                     {blog.content}
                   </p>
-                  
-                  <div className="flex items-center text-xs text-gray-500 gap-4">
-                    <span>{blog.author_email || 'Anonymous'}</span>
-                    <span>•</span>
-                    <span>{new Date(blog.created_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}</span>
-                  </div>
+
+                  {blog.image_urls && blog.image_urls.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      {blog.image_urls.slice(0, 2).map((url, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={url}
+                            alt={`Post image ${index + 1}`}
+                            className="w-full h-32 object-cover rounded border border-gray-200"
+                          />
+                          {index === 1 && blog.image_urls!.length > 2 && (
+                            <div className="absolute inset-0 bg-black bg-opacity-50 rounded flex items-center justify-center">
+                              <span className="text-white font-medium text-lg">
+                                +{blog.image_urls!.length - 2}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Previous
-                </button>
-
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageClick(page)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        currentPage === page
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next
-                </button>
               </div>
-            )}
-
-            <div className="text-center text-sm text-gray-500 mt-4">
-              Showing {startIndex + 1}-{Math.min(endIndex, blogs.length)} of {blogs.length} posts
-            </div>
-          </>
+            ))}
+          </div>
         )}
       </div>
     </div>
