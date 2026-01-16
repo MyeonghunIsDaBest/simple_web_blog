@@ -1,3 +1,6 @@
+// src/store/blogSlice.ts
+// Complete blog slice with comments and image upload support
+
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { supabase } from '../lib/supabase';
 import { BlogState, Blog, Comment } from '../types';
@@ -10,83 +13,75 @@ const initialState: BlogState = {
   error: null,
 };
 
-// Upload images to Supabase storage
-const uploadImages = async (files: File[], userId: string): Promise<string[]> => {
-  const uploadPromises = files.map(async (file) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
+// Helper function to upload images to Supabase Storage
+async function uploadImages(images: File[], userId: string | null): Promise<string[]> {
+  const uploadedUrls: string[] = [];
+  
+  for (const image of images) {
+    const fileExt = image.name.split('.').pop();
+    const fileName = `${userId || 'guest'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
       .from('blog-images')
-      .upload(fileName, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage
+      .upload(fileName, image);
+    
+    if (error) {
+      console.error('Image upload error:', error);
+      continue;
+    }
+    
+    const { data: urlData } = supabase.storage
       .from('blog-images')
       .getPublicUrl(fileName);
+    
+    uploadedUrls.push(urlData.publicUrl);
+  }
+  
+  return uploadedUrls;
+}
 
-    return data.publicUrl;
-  });
-
-  return Promise.all(uploadPromises);
-};
-
+// Fetch all blogs with counts (using the view)
 export const fetchBlogs = createAsyncThunk(
   'blogs/fetchBlogs',
   async (_, { rejectWithValue }) => {
     try {
       const { data, error } = await supabase
-        .from('blogs')
-        .select(`
-          *,
-          profiles:author_id (username, avatar_url)
-        `)
+        .from('blogs_with_counts')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      const blogsWithProfiles = data.map((blog: any) => ({
-        ...blog,
-        author_username: blog.profiles?.username || blog.author_email,
-        author_avatar: blog.profiles?.avatar_url || null
-      }));
-
-      return blogsWithProfiles as Blog[];
+      return data as Blog[];
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Fetch single blog with counts
 export const fetchBlog = createAsyncThunk(
   'blogs/fetchBlog',
   async (id: string, { rejectWithValue }) => {
     try {
       const { data, error } = await supabase
-        .from('blogs')
-        .select(`
-          *,
-          profiles:author_id (username, avatar_url)
-        `)
+        .from('blogs_with_counts')
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
-
-      const blogWithProfile = {
-        ...data,
-        author_username: data.profiles?.username || data.author_email,
-        author_avatar: data.profiles?.avatar_url || null
-      };
-
-      return blogWithProfile as Blog;
+      
+      // Increment view count
+      await supabase.rpc('increment_blog_views', { blog_id: id });
+      
+      return data as Blog;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Create blog
 export const createBlog = createAsyncThunk(
   'blogs/createBlog',
   async (
@@ -94,98 +89,127 @@ export const createBlog = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      let userId = '';
-      let userEmail = '';
-      let username = '';
-      let avatarUrl: string | null = null;
-
+      // Check if user is a guest
       const guestUser = localStorage.getItem('guestUser');
       
+      let imageUrls: string[] = [];
+      let userId: string | null = null;
+      
+      // Upload images if provided
+      if (blogData.images && blogData.images.length > 0) {
+        if (guestUser) {
+          const guest = JSON.parse(guestUser);
+          userId = guest.id;
+        } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          userId = user?.id || null;
+        }
+        
+        imageUrls = await uploadImages(blogData.images, userId);
+      }
+      
+      let blogInsertData: any;
+      
       if (guestUser) {
+        // Guest post
         const guest = JSON.parse(guestUser);
-        userId = guest.id;
-        userEmail = 'Anonymous';
-        username = 'Anonymous';
+        blogInsertData = {
+          title: blogData.title,
+          content: blogData.content,
+          author_id: null,
+          author_email: guest.email || 'Anonymous',
+          author_username: 'Anonymous',
+          is_guest_post: true,
+          image_urls: imageUrls,
+        };
       } else {
+        // Authenticated user post
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
-        userId = user.id;
-        userEmail = user.email || 'Unknown';
-
+        
+        // Get user's profile for username
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username, avatar_url')
-          .eq('id', userId)
+          .select('username')
+          .eq('id', user.id)
           .single();
-
-        username = profile?.username || userEmail;
-        avatarUrl = profile?.avatar_url || null;
-      }
-
-      let imageUrls: string[] = [];
-      if (blogData.images && blogData.images.length > 0) {
-        imageUrls = await uploadImages(blogData.images, userId);
+        
+        blogInsertData = {
+          title: blogData.title,
+          content: blogData.content,
+          author_id: user.id,
+          author_email: user.email,
+          author_username: profile?.username || user.email,
+          is_guest_post: false,
+          image_urls: imageUrls,
+        };
       }
 
       const { data, error } = await supabase
         .from('blogs')
-        .insert([
-          {
-            title: blogData.title,
-            content: blogData.content,
-            author_id: userId,
-            author_email: userEmail,
-            image_urls: imageUrls.length > 0 ? imageUrls : null,
-          },
-        ])
+        .insert([blogInsertData])
         .select()
         .single();
 
       if (error) throw error;
-
-      return {
-        ...data,
-        author_username: username,
-        author_avatar: avatarUrl
-      } as Blog;
+      return data as Blog;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Update blog
 export const updateBlog = createAsyncThunk(
   'blogs/updateBlog',
   async (
-    { id, title, content }: { id: string; title: string; content: string },
+    { id, title, content, images }: { 
+      id: string; 
+      title: string; 
+      content: string; 
+      images?: File[];
+    },
     { rejectWithValue }
   ) => {
     try {
+      const updateData: any = { 
+        title, 
+        content,
+      };
+      
+      // Upload new images if provided
+      if (images && images.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || null;
+        const imageUrls = await uploadImages(images, userId);
+        
+        // Get existing images
+        const { data: existingBlog } = await supabase
+          .from('blogs')
+          .select('image_urls')
+          .eq('id', id)
+          .single();
+        
+        // Combine existing and new images
+        updateData.image_urls = [...(existingBlog?.image_urls || []), ...imageUrls];
+      }
+      
       const { data, error } = await supabase
         .from('blogs')
-        .update({ title, content, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id)
-        .select(`
-          *,
-          profiles:author_id (username, avatar_url)
-        `)
+        .select()
         .single();
 
       if (error) throw error;
-
-      const blogWithProfile = {
-        ...data,
-        author_username: data.profiles?.username || data.author_email,
-        author_avatar: data.profiles?.avatar_url || null
-      };
-
-      return blogWithProfile as Blog;
+      return data as Blog;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Delete blog
 export const deleteBlog = createAsyncThunk(
   'blogs/deleteBlog',
   async (id: string, { rejectWithValue }) => {
@@ -203,6 +227,72 @@ export const deleteBlog = createAsyncThunk(
   }
 );
 
+// Like a blog (authenticated users only)
+export const likeBlog = createAsyncThunk(
+  'blogs/likeBlog',
+  async (blogId: string, { rejectWithValue }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Must be logged in to like posts');
+
+      const { error } = await supabase
+        .from('blog_likes')
+        .insert([{ blog_id: blogId, user_id: user.id }]);
+
+      if (error) throw error;
+      return blogId;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Unlike a blog
+export const unlikeBlog = createAsyncThunk(
+  'blogs/unlikeBlog',
+  async (blogId: string, { rejectWithValue }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Must be logged in');
+
+      const { error } = await supabase
+        .from('blog_likes')
+        .delete()
+        .eq('blog_id', blogId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return blogId;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Check if user has liked a blog
+export const checkIfLiked = createAsyncThunk(
+  'blogs/checkIfLiked',
+  async (blogId: string, { rejectWithValue }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { blogId, liked: false };
+
+      const { data, error } = await supabase
+        .from('blog_likes')
+        .select('id')
+        .eq('blog_id', blogId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return { blogId, liked: !!data };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Fetch comments for a blog
 export const fetchComments = createAsyncThunk(
   'blogs/fetchComments',
   async (blogId: string, { rejectWithValue }) => {
@@ -211,105 +301,117 @@ export const fetchComments = createAsyncThunk(
         .from('comments')
         .select(`
           *,
-          profiles:author_id (username, avatar_url)
+          profiles:author_id (
+            username,
+            avatar_url
+          )
         `)
         .eq('blog_id', blogId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-
-      const commentsWithProfiles = data.map((comment: any) => ({
+      
+      // Map the joined data to our Comment type
+      const comments = data.map((comment: any) => ({
         ...comment,
-        author_username: comment.profiles?.username || comment.author_email,
-        author_avatar: comment.profiles?.avatar_url || null
+        author_username_profile: comment.profiles?.username,
+        author_avatar_url: comment.profiles?.avatar_url,
+        author_avatar: comment.profiles?.avatar_url,
       }));
-
-      return commentsWithProfiles as Comment[];
+      
+      return comments as Comment[];
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Create comment
 export const createComment = createAsyncThunk(
   'blogs/createComment',
   async (
-    commentData: { blogId: string; content: string; images?: File[] },
+    commentData: { blog_id: string; content: string; images?: File[] },
     { rejectWithValue }
   ) => {
     try {
-      let userId = '';
-      let userEmail = '';
-      let username = '';
-      let avatarUrl: string | null = null;
-
       const guestUser = localStorage.getItem('guestUser');
+      
+      let imageUrls: string[] = [];
+      let userId: string | null = null;
+      
+      // Upload images if provided
+      if (commentData.images && commentData.images.length > 0) {
+        if (guestUser) {
+          const guest = JSON.parse(guestUser);
+          userId = guest.id;
+        } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          userId = user?.id || null;
+        }
+        
+        imageUrls = await uploadImages(commentData.images, userId);
+      }
+      
+      let commentInsertData: any;
       
       if (guestUser) {
         const guest = JSON.parse(guestUser);
-        userId = guest.id;
-        userEmail = 'Anonymous';
-        username = 'Anonymous';
+        commentInsertData = {
+          blog_id: commentData.blog_id,
+          content: commentData.content,
+          author_id: null,
+          author_email: guest.email || 'Anonymous',
+          author_username: 'Anonymous',
+          is_guest_comment: true,
+          image_urls: imageUrls,
+        };
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
-        userId = user.id;
-        userEmail = user.email || 'Unknown';
-
+        
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username, avatar_url')
-          .eq('id', userId)
+          .select('username')
+          .eq('id', user.id)
           .single();
-
-        username = profile?.username || userEmail;
-        avatarUrl = profile?.avatar_url || null;
-      }
-
-      let imageUrls: string[] = [];
-      if (commentData.images && commentData.images.length > 0) {
-        imageUrls = await uploadImages(commentData.images, userId);
+        
+        commentInsertData = {
+          blog_id: commentData.blog_id,
+          content: commentData.content,
+          author_id: user.id,
+          author_email: user.email,
+          author_username: profile?.username || user.email,
+          is_guest_comment: false,
+          image_urls: imageUrls,
+        };
       }
 
       const { data, error } = await supabase
         .from('comments')
-        .insert([
-          {
-            blog_id: commentData.blogId,
-            author_id: userId,
-            author_email: userEmail,
-            author_username: username,
-            content: commentData.content,
-            image_urls: imageUrls.length > 0 ? imageUrls : null,
-          },
-        ])
+        .insert([commentInsertData])
         .select()
         .single();
 
       if (error) throw error;
-
-      return {
-        ...data,
-        author_username: username,
-        author_avatar: avatarUrl
-      } as Comment;
+      return data as Comment;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Delete comment
 export const deleteComment = createAsyncThunk(
   'blogs/deleteComment',
-  async (commentId: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }) => {
     try {
       const { error } = await supabase
         .from('comments')
         .delete()
-        .eq('id', commentId);
+        .eq('id', id);
 
       if (error) throw error;
-      return commentId;
+      return id;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -330,6 +432,7 @@ const blogSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Fetch all blogs
       .addCase(fetchBlogs.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -342,6 +445,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Fetch single blog
       .addCase(fetchBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -354,6 +458,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Create blog
       .addCase(createBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -366,13 +471,14 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Update blog
       .addCase(updateBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(updateBlog.fulfilled, (state, action: PayloadAction<Blog>) => {
         state.loading = false;
-        const index = state.blogs.findIndex((blog: Blog) => blog.id === action.payload.id);
+        const index = state.blogs.findIndex((blog) => blog.id === action.payload.id);
         if (index !== -1) {
           state.blogs[index] = action.payload;
         }
@@ -384,13 +490,14 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Delete blog
       .addCase(deleteBlog.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(deleteBlog.fulfilled, (state, action: PayloadAction<string>) => {
         state.loading = false;
-        state.blogs = state.blogs.filter((blog: Blog) => blog.id !== action.payload);
+        state.blogs = state.blogs.filter((blog) => blog.id !== action.payload);
         if (state.currentBlog?.id === action.payload) {
           state.currentBlog = null;
         }
@@ -399,6 +506,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Fetch comments
       .addCase(fetchComments.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -411,6 +519,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Create comment
       .addCase(createComment.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -423,6 +532,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Delete comment
       .addCase(deleteComment.pending, (state) => {
         state.loading = true;
         state.error = null;

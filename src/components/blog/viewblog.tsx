@@ -42,12 +42,12 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
     setSubmittingComment(true);
     try {
       await dispatch(
-        createComment({
-          blogId,
-          content: commentContent,
-          images: commentImages
-        })
-      ).unwrap();
+    createComment({
+    blog_id: blogId,  // ✅ Correct property name
+    content: commentContent,
+    images: commentImages
+     })
+    ).unwrap();;
       setCommentContent('');
       setCommentImages([]);
     } catch (err) {

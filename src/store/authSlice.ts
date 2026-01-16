@@ -1,3 +1,6 @@
+// src/store/authSlice.ts
+// Complete auth slice with profile management
+
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { supabase } from '../lib/supabase';
 import { AuthState, User, Profile } from '../types';
@@ -9,24 +12,72 @@ const initialState: AuthState = {
   error: null,
 };
 
+// Helper function to generate a valid UUID v4
 function generateGuestUUID(): string {
   return '00000000-0000-4000-8000-' + 
     Date.now().toString(16).padStart(12, '0').slice(-12);
 }
 
+// Helper function to upload avatar to Supabase Storage
+async function uploadAvatarInternal(file: File, userId: string): Promise<string> {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}/${Date.now()}.${fileExt}`;
+  
+  const { data, error } = await supabase.storage
+    .from('avatars')
+    .upload(fileName, file);
+  
+  if (error) throw error;
+  
+  const { data: urlData } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+  
+  return urlData.publicUrl;
+}
+
+// Exported helper function for components
+export const uploadAvatar = createAsyncThunk(
+  'auth/uploadAvatar',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      return await uploadAvatarInternal(file, user.id);
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const register = createAsyncThunk(
   'auth/register',
-  async ({ email, password, username }: { email: string; password: string; username: string }, { rejectWithValue }) => {
+  async ({ email, password, username }: { email: string; password: string; username?: string }, { rejectWithValue }) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username }
-        }
-      });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      return data.user as User;
+      
+      // Profile will be auto-created by the database trigger
+      // Wait a moment for the trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update username if provided
+      if (username && data.user) {
+        await supabase
+          .from('profiles')
+          .update({ username })
+          .eq('id', data.user.id);
+      }
+      
+      // Fetch the created profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user?.id)
+        .single();
+      
+      return { user: data.user as User, profile: profile as Profile | null };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -39,7 +90,15 @@ export const login = createAsyncThunk(
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      return data.user as User;
+      
+      // Fetch user's profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user?.id)
+        .single();
+      
+      return { user: data.user as User, profile: profile as Profile | null };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -57,7 +116,8 @@ export const guestLogin = createAsyncThunk(
       };
       
       localStorage.setItem('guestUser', JSON.stringify(guestUser));
-      return guestUser;
+      
+      return { user: guestUser, profile: null };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -84,27 +144,37 @@ export const logout = createAsyncThunk(
 
 export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
-  async (_, { rejectWithValue, dispatch }) => {
+  async (_, { rejectWithValue }) => {
     try {
+      // Check for guest user first
       const guestUser = localStorage.getItem('guestUser');
       if (guestUser) {
         return { user: JSON.parse(guestUser) as User, profile: null };
       }
       
+      // Check for regular authenticated user
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) throw error;
       
-      if (user) {
-        dispatch(fetchProfile(user.id));
+      if (!user) {
+        return { user: null, profile: null };
       }
       
-      return { user: user as User, profile: null };
+      // Fetch user's profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      return { user: user as User, profile: profile as Profile | null };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+// Fetch user profile
 export const fetchProfile = createAsyncThunk(
   'auth/fetchProfile',
   async (userId: string, { rejectWithValue }) => {
@@ -114,7 +184,7 @@ export const fetchProfile = createAsyncThunk(
         .select('*')
         .eq('id', userId)
         .single();
-
+      
       if (error) throw error;
       return data as Profile;
     } catch (error: any) {
@@ -123,57 +193,40 @@ export const fetchProfile = createAsyncThunk(
   }
 );
 
+// Update user profile
 export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
-  async ({ username, avatar_url }: { username: string; avatar_url: string | null }, { rejectWithValue, getState }) => {
+  async (
+    { username, avatar_url, avatarFile }: { username?: string; avatar_url?: string | null; avatarFile?: File },
+    { rejectWithValue }
+  ) => {
     try {
-      const state = getState() as any;
-      const userId = state.auth.user?.id;
-
-      if (!userId) throw new Error('No user found');
-
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const updateData: any = {};
+      
+      if (username !== undefined) {
+        updateData.username = username;
+      }
+      
+      // Handle avatar_url directly or upload file
+      if (avatar_url !== undefined) {
+        updateData.avatar_url = avatar_url;
+      } else if (avatarFile) {
+        const avatarUrl = await uploadAvatarInternal(avatarFile, user.id);
+        updateData.avatar_url = avatarUrl;
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
-          username,
-          avatar_url,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
+        .eq('id', user.id)
         .select()
         .single();
-
+      
       if (error) throw error;
       return data as Profile;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const uploadAvatar = createAsyncThunk(
-  'auth/uploadAvatar',
-  async (file: File, { rejectWithValue, getState }) => {
-    try {
-      const state = getState() as any;
-      const userId = state.auth.user?.id;
-
-      if (!userId) throw new Error('No user found');
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      return data.publicUrl;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -194,9 +247,10 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(register.fulfilled, (state, action: PayloadAction<{ user: User; profile: Profile | null }>) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.profile = action.payload.profile;
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
@@ -206,9 +260,10 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(login.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(login.fulfilled, (state, action: PayloadAction<{ user: User; profile: Profile | null }>) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.profile = action.payload.profile;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -218,9 +273,10 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(guestLogin.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(guestLogin.fulfilled, (state, action: PayloadAction<{ user: User; profile: Profile | null }>) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.profile = action.payload.profile;
       })
       .addCase(guestLogin.rejected, (state, action) => {
         state.loading = false;
@@ -230,7 +286,7 @@ const authSlice = createSlice({
         state.user = null;
         state.profile = null;
       })
-      .addCase(checkAuth.fulfilled, (state, action: PayloadAction<{ user: User; profile: Profile | null }>) => {
+      .addCase(checkAuth.fulfilled, (state, action: PayloadAction<{ user: User | null; profile: Profile | null }>) => {
         state.user = action.payload.user;
         state.profile = action.payload.profile;
       })
@@ -250,17 +306,6 @@ const authSlice = createSlice({
         state.profile = action.payload;
       })
       .addCase(updateProfile.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      .addCase(uploadAvatar.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(uploadAvatar.fulfilled, (state) => {
-        state.loading = false;
-      })
-      .addCase(uploadAvatar.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
