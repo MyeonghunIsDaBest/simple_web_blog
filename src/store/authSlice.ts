@@ -1,14 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { supabase } from '../lib/supabase';
-import { AuthState, User } from '../types';
+import { AuthState, User, Profile } from '../types';
 
 const initialState: AuthState = {
   user: null,
+  profile: null,
   loading: false,
   error: null,
 };
 
-// Helper function to generate a valid UUID v4
 function generateGuestUUID(): string {
   return '00000000-0000-4000-8000-' + 
     Date.now().toString(16).padStart(12, '0').slice(-12);
@@ -16,9 +16,15 @@ function generateGuestUUID(): string {
 
 export const register = createAsyncThunk(
   'auth/register',
-  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+  async ({ email, password, username }: { email: string; password: string; username: string }, { rejectWithValue }) => {
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username }
+        }
+      });
       if (error) throw error;
       return data.user as User;
     } catch (error: any) {
@@ -44,16 +50,13 @@ export const guestLogin = createAsyncThunk(
   'auth/guestLogin',
   async (_, { rejectWithValue }) => {
     try {
-      // Create a guest user object with a valid UUID
       const guestUser: User = {
         id: generateGuestUUID(),
         email: 'guest@anonymous.com',
         isGuest: true,
       };
       
-      // Store guest status in localStorage
       localStorage.setItem('guestUser', JSON.stringify(guestUser));
-      
       return guestUser;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -68,10 +71,8 @@ export const logout = createAsyncThunk(
       const guestUser = localStorage.getItem('guestUser');
       
       if (guestUser) {
-        // Clear guest user from localStorage
         localStorage.removeItem('guestUser');
       } else {
-        // Regular user logout
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
       }
@@ -83,18 +84,96 @@ export const logout = createAsyncThunk(
 
 export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
-      // Check for guest user first
       const guestUser = localStorage.getItem('guestUser');
       if (guestUser) {
-        return JSON.parse(guestUser) as User;
+        return { user: JSON.parse(guestUser) as User, profile: null };
       }
       
-      // Check for regular authenticated user
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) throw error;
-      return user as User;
+      
+      if (user) {
+        dispatch(fetchProfile(user.id));
+      }
+      
+      return { user: user as User, profile: null };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchProfile = createAsyncThunk(
+  'auth/fetchProfile',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return data as Profile;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async ({ username, avatar_url }: { username: string; avatar_url: string | null }, { rejectWithValue, getState }) => {
+    try {
+      const state = getState() as any;
+      const userId = state.auth.user?.id;
+
+      if (!userId) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          username,
+          avatar_url,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Profile;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const uploadAvatar = createAsyncThunk(
+  'auth/uploadAvatar',
+  async (file: File, { rejectWithValue, getState }) => {
+    try {
+      const state = getState() as any;
+      const userId = state.auth.user?.id;
+
+      if (!userId) throw new Error('No user found');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -149,12 +228,41 @@ const authSlice = createSlice({
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
+        state.profile = null;
       })
-      .addCase(checkAuth.fulfilled, (state, action: PayloadAction<User>) => {
-        state.user = action.payload;
+      .addCase(checkAuth.fulfilled, (state, action: PayloadAction<{ user: User; profile: Profile | null }>) => {
+        state.user = action.payload.user;
+        state.profile = action.payload.profile;
       })
       .addCase(checkAuth.rejected, (state) => {
         state.user = null;
+        state.profile = null;
+      })
+      .addCase(fetchProfile.fulfilled, (state, action: PayloadAction<Profile>) => {
+        state.profile = action.payload;
+      })
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action: PayloadAction<Profile>) => {
+        state.loading = false;
+        state.profile = action.payload;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(uploadAvatar.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(uploadAvatar.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(uploadAvatar.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

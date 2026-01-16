@@ -8,6 +8,7 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,7 +27,11 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
       alert('Passwords do not match');
       return;
     }
-    dispatch(register({ email, password }));
+    if (username.length < 3) {
+      alert('Username must be at least 3 characters');
+      return;
+    }
+    dispatch(register({ email, password, username }));
   };
 
   const handleGuestLogin = () => {
@@ -45,6 +50,17 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
 
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="johndoe"
+                required
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
               <input

@@ -9,12 +9,13 @@ import BlogList from './components/blog/bloglist';
 import CreateBlog from './components/blog/createblog';
 import ViewBlog from './components/blog/viewblog';
 import EditBlog from './components/blog/editblog';
+import ProfileSetup from './components/profile/profilesetup';
 
-type View = 'login' | 'register' | 'list' | 'create' | 'view' | 'edit';
+type View = 'login' | 'register' | 'list' | 'create' | 'view' | 'edit' | 'profile';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { user, loading } = useSelector((state: RootState) => state.auth);
+  const { user, profile, loading } = useSelector((state: RootState) => state.auth);
   const [view, setView] = useState<View>('login');
   const [selectedBlogId, setSelectedBlogId] = useState<string | null>(null);
 
@@ -24,11 +25,16 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      setView('list');
+      // If user is not a guest and doesn't have a profile, show profile setup
+      if (!user.isGuest && !profile?.username) {
+        setView('profile');
+      } else {
+        setView('list');
+      }
     } else {
       setView('login');
     }
-  }, [user]);
+  }, [user, profile]);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -44,6 +50,10 @@ function App() {
     setView('edit');
   };
 
+  const handleProfileComplete = () => {
+    setView('list');
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -56,6 +66,7 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Navbar
         user={user}
+        profile={profile}
         onLogout={handleLogout}
         onNavigate={(newView) => setView(newView as View)}
       />
@@ -66,21 +77,26 @@ function App() {
       {!user && view === 'register' && (
         <Register onSwitchToLogin={() => setView('login')} />
       )}
-      {user && view === 'list' && (
+      {user && view === 'profile' && (
+        <ProfileSetup onComplete={handleProfileComplete} />
+      )}
+      {user && (profile?.username || user.isGuest) && view === 'list' && (
         <BlogList 
           onViewBlog={handleViewBlog}
           onCreateBlog={() => setView('create')}
         />
       )}
-      {user && view === 'create' && <CreateBlog onBack={() => setView('list')} />}
-      {user && view === 'view' && selectedBlogId && (
+      {user && (profile?.username || user.isGuest) && view === 'create' && (
+        <CreateBlog onBack={() => setView('list')} />
+      )}
+      {user && (profile?.username || user.isGuest) && view === 'view' && selectedBlogId && (
         <ViewBlog
           blogId={selectedBlogId}
           onBack={() => setView('list')}
           onEdit={handleEditBlog}
         />
       )}
-      {user && view === 'edit' && selectedBlogId && (
+      {user && (profile?.username || user.isGuest) && view === 'edit' && selectedBlogId && (
         <EditBlog
           blogId={selectedBlogId}
           onBack={() => setView('list')}
