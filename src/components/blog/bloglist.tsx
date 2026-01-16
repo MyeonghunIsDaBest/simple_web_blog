@@ -54,35 +54,34 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
           </div>
           <button
             onClick={onCreateBlog}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm hover:shadow-md"
           >
             New Post
           </button>
         </div>
 
         {blogs.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
+          <div className="text-center py-20 bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="text-5xl mb-4">📝</div>
             <p className="text-xl text-gray-700 mb-2">No posts yet</p>
             <p className="text-gray-500">Be the first to share something!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {blogs.map((blog: Blog) => {
-              // Get avatar from either author_avatar_url (from view) or author_avatar (alias)
               const avatarUrl = blog.author_avatar_url || blog.author_avatar;
-              // Get username from profile or fallback to author_username
               const displayUsername = blog.author_username_profile || blog.author_username || blog.author_email || 'Anonymous';
               
               return (
                 <div
                   key={blog.id}
-                  className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden"
+                  className="bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition-all cursor-pointer overflow-hidden"
                   onClick={() => handleBlogClick(blog.id)}
                 >
                   <div className="p-6">
+                    {/* Author Header */}
                     <div className="flex items-start gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                         {avatarUrl ? (
                           <img
                             src={avatarUrl}
@@ -90,18 +89,18 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                           </svg>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">
+                          <span className="font-semibold text-gray-900">
                             {displayUsername}
                           </span>
                           {blog.is_guest_post && (
-                            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded font-medium">
+                            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">
                               Guest
                             </span>
                           )}
@@ -116,52 +115,88 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
                       </div>
                     </div>
 
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {/* Title */}
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-blue-600 transition-colors">
                       {blog.title}
                     </h2>
                     
-                    <p className="text-gray-600 mb-3 line-clamp-2 text-sm">
+                    {/* Content Preview */}
+                    <p className="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
                       {blog.content}
                     </p>
 
+                    {/* Images - Centered Layout */}
                     {blog.image_urls && blog.image_urls.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 mt-3">
-                        {blog.image_urls.slice(0, 2).map((url, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={url}
-                              alt={`Post ${index + 1}`}
-                              className="w-full h-32 object-cover rounded border border-gray-200"
-                            />
-                            {index === 1 && blog.image_urls!.length > 2 && (
-                              <div className="absolute inset-0 bg-black bg-opacity-50 rounded flex items-center justify-center">
-                                <span className="text-white font-medium text-lg">
-                                  +{blog.image_urls!.length - 2}
-                                </span>
-                              </div>
-                            )}
+                      <div className="mt-4 mb-3">
+                        {blog.image_urls.length === 1 ? (
+                          // Single image - centered
+                          <div className="flex justify-center">
+                            <div className="max-w-2xl w-full">
+                              <img
+                                src={blog.image_urls[0]}
+                                alt="Post image"
+                                className="w-full h-auto max-h-96 object-contain rounded-lg border border-gray-200 shadow-sm"
+                              />
+                            </div>
                           </div>
-                        ))}
+                        ) : blog.image_urls.length === 2 ? (
+                          // Two images - side by side centered
+                          <div className="flex justify-center gap-3">
+                            {blog.image_urls.map((url, index) => (
+                              <div key={index} className="w-[48%] max-w-sm">
+                                <img
+                                  src={url}
+                                  alt={`Post ${index + 1}`}
+                                  className="w-full h-48 object-cover rounded-lg border border-gray-200 shadow-sm"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          // Three or more images - grid layout centered
+                          <div className="flex justify-center">
+                            <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
+                              {blog.image_urls.slice(0, 4).map((url, index) => (
+                                <div key={index} className="relative aspect-square">
+                                  <img
+                                    src={url}
+                                    alt={`Post ${index + 1}`}
+                                    className="w-full h-full object-cover rounded-lg border border-gray-200 shadow-sm"
+                                  />
+                                  {index === 3 && blog.image_urls!.length > 4 && (
+                                    <div className="absolute inset-0 bg-black bg-opacity-60 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                                      <span className="text-white font-bold text-2xl">
+                                        +{blog.image_urls!.length - 4}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Show like and comment counts if available */}
+                    {/* Stats */}
                     {(blog.like_count !== undefined || blog.comment_count !== undefined || blog.view_count > 0) && (
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-sm text-gray-500">
+                      <div className="flex items-center gap-5 mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
                         {blog.like_count !== undefined && blog.like_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="text-blue-600">👍</span>
-                            {blog.like_count}
+                          <span className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+                            <span className="text-base">👍</span>
+                            <span className="font-medium">{blog.like_count}</span>
                           </span>
                         )}
                         {blog.comment_count !== undefined && blog.comment_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            💬 {blog.comment_count} {blog.comment_count === 1 ? 'comment' : 'comments'}
+                          <span className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+                            <span className="text-base">💬</span>
+                            <span className="font-medium">{blog.comment_count}</span>
                           </span>
                         )}
                         {blog.view_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            👁️ {blog.view_count} {blog.view_count === 1 ? 'view' : 'views'}
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-base">👁️</span>
+                            <span className="font-medium">{blog.view_count}</span>
                           </span>
                         )}
                       </div>

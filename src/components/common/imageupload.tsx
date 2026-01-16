@@ -71,12 +71,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             <img
               src={preview}
               alt={`Preview ${index + 1}`}
-              className="w-24 h-24 object-cover rounded-lg border border-gray-300"
+              className="w-28 h-28 object-cover rounded-lg border-2 border-gray-300 shadow-sm"
             />
             <button
               type="button"
               onClick={() => removeImage(index)}
-              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-700 font-bold"
             >
               ×
             </button>
@@ -84,10 +84,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         ))}
 
         {images.length < maxImages && (
-          <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
+          <label className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group">
             <div className="text-center">
               <svg
-                className="w-8 h-8 text-gray-400 mx-auto mb-1"
+                className="w-10 h-10 text-gray-400 mx-auto mb-1 group-hover:text-blue-500 transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -99,7 +99,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span className="text-xs text-gray-500">Add</span>
+              <span className="text-xs text-gray-500 group-hover:text-blue-600 font-medium">Add Image</span>
             </div>
             <input
               type="file"
@@ -113,11 +113,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 mb-2">{error}</p>
+        <p className="text-sm text-red-600 mb-2 bg-red-50 px-3 py-2 rounded-md border border-red-200">
+          {error}
+        </p>
       )}
 
       <p className="text-xs text-gray-500">
-        You can upload up to {maxImages} images (max {maxSizeMB}MB each)
+        📸 You can upload up to {maxImages} images (max {maxSizeMB}MB each)
       </p>
     </div>
   );

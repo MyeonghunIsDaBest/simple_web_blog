@@ -34,7 +34,6 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
     dispatch(fetchBlog(blogId));
     dispatch(fetchComments(blogId));
     
-    // Check if user has liked the blog (only for authenticated users)
     if (user && !user.isGuest) {
       dispatch(checkIfLiked(blogId)).then((result: any) => {
         if (result.payload) {
@@ -155,17 +154,17 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
       <div className="container mx-auto px-4 max-w-4xl">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-1 mb-6 text-sm"
+          className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-6 text-sm font-medium hover:gap-3 transition-all"
         >
-          ← Back to posts
+          <span>←</span> Back to posts
         </button>
 
-        <article className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <article className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+          <div className="p-8 border-b border-gray-200">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -173,18 +172,18 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <svg className="w-7 h-7 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                     </svg>
                   )}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-gray-900 text-lg">
                       {displayUsername}
                     </span>
                     {currentBlog.is_guest_post && (
-                      <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded font-medium">
+                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full font-medium">
                         Guest
                       </span>
                     )}
@@ -205,13 +204,13 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                 <div className="flex gap-2">
                   <button
                     onClick={onEdit}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1 hover:bg-blue-50 rounded transition-colors"
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium px-4 py-2 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1 hover:bg-red-50 rounded transition-colors"
+                    className="text-red-600 hover:text-red-700 text-sm font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     Delete
                   </button>
@@ -219,57 +218,89 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
               )}
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
               {currentBlog.title}
             </h1>
 
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-6 text-sm text-gray-500">
               {currentBlog.view_count > 0 && (
-                <span className="flex items-center gap-1">
-                  👁️ {currentBlog.view_count} {currentBlog.view_count === 1 ? 'view' : 'views'}
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">👁️</span>
+                  <span className="font-medium">{currentBlog.view_count} {currentBlog.view_count === 1 ? 'view' : 'views'}</span>
                 </span>
               )}
-              <span className="flex items-center gap-1">
-                💬 {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+              <span className="flex items-center gap-2">
+                <span className="text-lg">💬</span>
+                <span className="font-medium">{comments.length} {comments.length === 1 ? 'comment' : 'comments'}</span>
               </span>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-6">
-            <div className="prose max-w-none mb-6">
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <div className="p-8">
+            <div className="prose max-w-none mb-8">
+              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-lg">
                 {currentBlog.content}
               </p>
             </div>
 
-            {/* Images */}
+            {/* Post Images - Centered Layout */}
             {currentBlog.image_urls && currentBlog.image_urls.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {currentBlog.image_urls.map((url, index) => (
-                  <img
-                    key={index}
-                    src={url}
-                    alt={`Post ${index + 1}`}
-                    className="w-full rounded-lg border border-gray-200"
-                  />
-                ))}
+              <div className="mb-8">
+                {currentBlog.image_urls.length === 1 ? (
+                  // Single image - centered, larger
+                  <div className="flex justify-center">
+                    <img
+                      src={currentBlog.image_urls[0]}
+                      alt="Post image"
+                      className="max-w-full h-auto max-h-[32rem] object-contain rounded-xl border border-gray-200 shadow-md"
+                    />
+                  </div>
+                ) : currentBlog.image_urls.length === 2 ? (
+                  // Two images - side by side centered
+                  <div className="flex justify-center gap-4">
+                    {currentBlog.image_urls.map((url, index) => (
+                      <div key={index} className="w-[48%] max-w-md">
+                        <img
+                          src={url}
+                          alt={`Post ${index + 1}`}
+                          className="w-full h-auto max-h-80 object-cover rounded-xl border border-gray-200 shadow-md"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Three or more images - grid centered
+                  <div className="flex justify-center">
+                    <div className={`grid ${currentBlog.image_urls.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-3 max-w-3xl`}>
+                      {currentBlog.image_urls.map((url, index) => (
+                        <div key={index} className="relative aspect-square">
+                          <img
+                            src={url}
+                            alt={`Post ${index + 1}`}
+                            className="w-full h-full object-cover rounded-xl border border-gray-200 shadow-md"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Like Button */}
-            <div className="border-t border-b border-gray-200 py-3 mb-6">
+            <div className="border-t border-b border-gray-200 py-4 mb-8">
               <button
                 onClick={handleLikeToggle}
                 disabled={likingPost || !user || user.isGuest}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors ${
+                className={`flex items-center gap-3 px-6 py-3 rounded-lg font-semibold transition-all ${
                   isLiked
-                    ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                    ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title={user?.isGuest ? 'Create an account to like posts' : ''}
               >
-                <span className="text-lg">👍</span>
+                <span className="text-xl">👍</span>
                 <span>
                   {isLiked ? 'Liked' : 'Like'}
                   {localLikeCount > 0 && ` (${localLikeCount})`}
@@ -279,23 +310,23 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
 
             {/* Comments Section */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Comments ({comments.length})
               </h2>
 
               {/* Comment Form */}
-              <form onSubmit={handleCommentSubmit} className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="mb-3">
+              <form onSubmit={handleCommentSubmit} className="mb-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <div className="mb-4">
                   <textarea
                     value={commentContent}
                     onChange={(e) => setCommentContent(e.target.value)}
-                    placeholder="Write a comment..."
+                    placeholder="Share your thoughts..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   />
                 </div>
 
-                <div className="mb-3">
+                <div className="mb-4">
                   <ImageUpload
                     images={commentImages}
                     onImagesChange={setCommentImages}
@@ -307,17 +338,19 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                 <button
                   type="submit"
                   disabled={submittingComment || !commentContent.trim()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-semibold shadow-sm hover:shadow-md"
                 >
                   {submittingComment ? 'Posting...' : 'Post Comment'}
                 </button>
               </form>
 
               {/* Comments List */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {comments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No comments yet. Be the first to comment!
+                  <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="text-4xl mb-3">💬</div>
+                    <p className="font-medium">No comments yet</p>
+                    <p className="text-sm mt-1">Be the first to share your thoughts!</p>
                   </div>
                 ) : (
                   comments.map((comment) => {
@@ -329,10 +362,10 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                     );
 
                     return (
-                      <div key={comment.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div className="flex items-start justify-between mb-3">
+                      <div key={comment.id} className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                        <div className="flex items-start justify-between mb-4">
                           <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+                            <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                               {commentAvatarUrl ? (
                                 <img
                                   src={commentAvatarUrl}
@@ -340,18 +373,18 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                                 </svg>
                               )}
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-gray-900">
                                   {commentDisplayUsername}
                                 </span>
                                 {comment.is_guest_comment && (
-                                  <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded font-medium">
+                                  <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">
                                     Guest
                                   </span>
                                 )}
@@ -371,25 +404,26 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                           {isCommentAuthor && (
                             <button
                               onClick={() => handleCommentDelete(comment.id)}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium px-2 py-1 hover:bg-red-50 rounded transition-colors"
+                              className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               Delete
                             </button>
                           )}
                         </div>
 
-                        <p className="text-gray-700 mb-3 whitespace-pre-wrap">
+                        <p className="text-gray-700 mb-3 whitespace-pre-wrap leading-relaxed">
                           {comment.content}
                         </p>
 
+                        {/* Comment images - keep grid layout for comments */}
                         {comment.image_urls && comment.image_urls.length > 0 && (
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-2 mt-3">
                             {comment.image_urls.map((url, index) => (
                               <img
                                 key={index}
                                 src={url}
                                 alt={`Comment attachment ${index + 1}`}
-                                className="w-full h-32 object-cover rounded border border-gray-300"
+                                className="w-full h-32 object-cover rounded-lg border border-gray-300 shadow-sm"
                               />
                             ))}
                           </div>
