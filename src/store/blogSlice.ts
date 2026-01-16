@@ -21,7 +21,7 @@ async function uploadImages(images: File[], userId: string | null): Promise<stri
     const fileExt = image.name.split('.').pop();
     const fileName = `${userId || 'guest'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('blog-images')
       .upload(fileName, image);
     

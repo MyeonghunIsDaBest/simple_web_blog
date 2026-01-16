@@ -9,7 +9,7 @@ interface ProfileSetupProps {
 
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { user, profile, loading } = useSelector((state: RootState) => state.auth);
+  const { profile, loading } = useSelector((state: RootState) => state.auth);
   const [username, setUsername] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);

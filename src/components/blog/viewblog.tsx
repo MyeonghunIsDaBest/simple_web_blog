@@ -176,7 +176,7 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                 <img
                   key={index}
                   src={url}
-                  alt={`Post image ${index + 1}`}
+                  alt={`Post ${index + 1}`}
                   className="w-full rounded-lg border border-gray-200"
                 />
               ))}
@@ -280,7 +280,7 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                             <img
                               key={index}
                               src={url}
-                              alt={`Comment image ${index + 1}`}
+                              alt={`Comment ${index + 1}`}
                               className="w-full rounded border border-gray-200"
                             />
                           ))}
