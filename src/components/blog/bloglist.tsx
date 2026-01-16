@@ -130,7 +130,7 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
                           <div key={index} className="relative">
                             <img
                               src={url}
-                              alt={`Post image ${index + 1}`}
+                              alt={`Post ${index + 1}`}
                               className="w-full h-32 object-cover rounded border border-gray-200"
                             />
                             {index === 1 && blog.image_urls!.length > 2 && (
