@@ -16,7 +16,7 @@ function generateGuestUUID(): string {
 
 export const register = createAsyncThunk(
   'auth/register',
-  async ({ email, password, username }: { email: string; password: string; username: string }, { rejectWithValue }) => {
+  async ({ email, password, username }: { email: string; password: string; username: string }, { rejectWithValue, dispatch }) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -26,6 +26,12 @@ export const register = createAsyncThunk(
         }
       });
       if (error) throw error;
+      
+      // Fetch profile after registration
+      if (data.user) {
+        await dispatch(fetchProfile(data.user.id));
+      }
+      
       return data.user as User;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -35,10 +41,16 @@ export const register = createAsyncThunk(
 
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+  async ({ email, password }: { email: string; password: string }, { rejectWithValue, dispatch }) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      // Fetch profile immediately after login
+      if (data.user) {
+        await dispatch(fetchProfile(data.user.id));
+      }
+      
       return data.user as User;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -95,7 +107,11 @@ export const checkAuth = createAsyncThunk(
       if (error) throw error;
       
       if (user) {
-        dispatch(fetchProfile(user.id));
+        const profileResult = await dispatch(fetchProfile(user.id));
+        // Return the profile from the fetch result
+        if (fetchProfile.fulfilled.match(profileResult)) {
+          return { user: user as User, profile: profileResult.payload };
+        }
       }
       
       return { user: user as User, profile: null };
@@ -115,7 +131,13 @@ export const fetchProfile = createAsyncThunk(
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If profile doesn't exist (PGRST116), return null instead of error
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
       return data as Profile;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -238,7 +260,7 @@ const authSlice = createSlice({
         state.user = null;
         state.profile = null;
       })
-      .addCase(fetchProfile.fulfilled, (state, action: PayloadAction<Profile>) => {
+      .addCase(fetchProfile.fulfilled, (state, action: PayloadAction<Profile | null>) => {
         state.profile = action.payload;
       })
       .addCase(updateProfile.pending, (state) => {

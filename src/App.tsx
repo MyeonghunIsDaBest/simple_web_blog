@@ -18,23 +18,31 @@ function App() {
   const { user, profile, loading } = useSelector((state: RootState) => state.auth);
   const [view, setView] = useState<View>('login');
   const [selectedBlogId, setSelectedBlogId] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
-    dispatch(checkAuth());
+    dispatch(checkAuth()).finally(() => {
+      setIsInitialLoad(false);
+    });
   }, [dispatch]);
 
   useEffect(() => {
+    // Don't change views during initial load
+    if (isInitialLoad) return;
+
     if (user) {
-      // If user is not a guest and doesn't have a profile, show profile setup
-      if (!user.isGuest && !profile?.username) {
+      // If user is not a guest and doesn't have a profile username, show profile setup
+      if (!user.isGuest && (!profile || !profile.username)) {
         setView('profile');
-      } else {
+      } else if (view === 'login' || view === 'register' || view === 'profile') {
+        // Only redirect to list if coming from auth or profile pages
         setView('list');
       }
+      // Otherwise, keep the current view (e.g., if viewing a specific blog)
     } else {
       setView('login');
     }
-  }, [user, profile]);
+  }, [user, profile, isInitialLoad]);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -54,7 +62,7 @@ function App() {
     setView('list');
   };
 
-  if (loading) {
+  if (loading || isInitialLoad) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-xl">Loading...</div>
