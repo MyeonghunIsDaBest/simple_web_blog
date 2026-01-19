@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createBlog } from '../../store/blogSlice';
-import { AppDispatch, RootState } from '../../store';
+import { AppDispatch, RootState } from '../../store/';
 import ImageUpload from '../common/imageupload';
 
 interface CreateBlogProps {

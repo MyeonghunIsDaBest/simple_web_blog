@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '../../store';
+import { AppDispatch, RootState } from '../../store/';
 import { updateProfile, uploadAvatar } from '../../store/authSlice';
 
 interface ProfileSetupProps {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from './store';
+import { RootState, AppDispatch } from './store/';
 import { checkAuth, logout } from './store/authSlice';
 import Navbar from './components/layout/navbar';
 import Register from './components/auth/register';
@@ -42,7 +42,7 @@ function App() {
     } else {
       setView('login');
     }
-  }, [user, profile, isInitialLoad]);
+  }, [user, profile, isInitialLoad, view]);
 
   const handleLogout = async () => {
     await dispatch(logout());

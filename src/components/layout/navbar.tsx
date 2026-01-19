@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { User, Profile } from '../../types';
-import { RootState } from '../../store';
+import { RootState } from '../../store/';
 import { toggleTheme } from '../../store/themeSlice';
 
 interface NavbarProps {

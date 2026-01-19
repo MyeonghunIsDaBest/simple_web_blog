@@ -47,7 +47,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     }
 
     try {
-      const result = await dispatch(login({ email, password })).unwrap();
+      await dispatch(login({ email, password })).unwrap();
       // Success - component will unmount and redirect
     } catch (err: any) {
       // Error is already in Redux state, but we also set it locally

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBlog, updateBlog } from '../../store/blogSlice';
-import { AppDispatch, RootState } from '../../store';
+import { AppDispatch, RootState } from '../../store/';
 
 interface EditBlogProps {
   blogId: string;

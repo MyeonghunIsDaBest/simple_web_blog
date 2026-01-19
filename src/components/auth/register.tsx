@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, guestLogin, clearError } from '../../store/authSlice';
-import { AppDispatch, RootState } from '../../store';
+import { AppDispatch, RootState } from '../../store/';
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
