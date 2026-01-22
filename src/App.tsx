@@ -42,6 +42,7 @@ function App() {
     } else {
       setView('login');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profile, isInitialLoad]);
 
   const handleLogout = async () => {
