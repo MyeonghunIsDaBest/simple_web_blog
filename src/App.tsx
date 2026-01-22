@@ -42,7 +42,7 @@ function App() {
     } else {
       setView('login');
     }
-  }, [user, profile, isInitialLoad, view]);
+  }, [user, profile, isInitialLoad]);
 
   const handleLogout = async () => {
     await dispatch(logout());
