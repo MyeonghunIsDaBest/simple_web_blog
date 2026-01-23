@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBlog, updateBlog } from '../../store/blogSlice';
 import { AppDispatch, RootState } from '../../store/';
+import ImageManager from '../common/imagemanager';
 
 interface EditBlogProps {
   blogId: string;
@@ -13,6 +14,8 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
   const { currentBlog, loading } = useSelector((state: RootState) => state.blog);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -23,6 +26,7 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
     if (currentBlog) {
       setTitle(currentBlog.title);
       setContent(currentBlog.content);
+      setExistingImages(currentBlog.image_urls || []);
     }
   }, [currentBlog]);
 
@@ -36,7 +40,13 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
     }
 
     try {
-      await dispatch(updateBlog({ id: blogId, title, content })).unwrap();
+      await dispatch(updateBlog({
+        id: blogId,
+        title,
+        content,
+        image_urls: existingImages,
+        images: newImages
+      })).unwrap();
       onBack();
     } catch (err: any) {
       setError(err || 'Failed to update post');
@@ -85,22 +95,36 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
             />
           </div>
 
-          <div className="mb-8">
-            <label htmlFor="content" className="block text-sm font-semibold text-gray-700 mb-2">
-              Content
-            </label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={14}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Write your post content..."
-            />
-            <div className="mt-2 text-xs text-gray-500">
-              {content.length} characters
-            </div>
-          </div>
+           <div className="mb-8">
+             <label htmlFor="content" className="block text-sm font-semibold text-gray-700 mb-2">
+               Content
+             </label>
+             <textarea
+               id="content"
+               value={content}
+               onChange={(e) => setContent(e.target.value)}
+               rows={14}
+               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+               placeholder="Write your post content..."
+             />
+             <div className="mt-2 text-xs text-gray-500">
+               {content.length} characters
+             </div>
+           </div>
+
+           <div className="mb-8">
+             <label className="block text-sm font-semibold text-gray-700 mb-2">
+               Images <span className="text-gray-400 font-normal">(Optional)</span>
+             </label>
+             <ImageManager
+               existingImages={existingImages}
+               newImages={newImages}
+               onExistingImagesChange={setExistingImages}
+               onNewImagesChange={setNewImages}
+               maxImages={5}
+               maxSizeMB={5}
+             />
+           </div>
 
           <div className="flex gap-3">
             <button

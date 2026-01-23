@@ -97,8 +97,8 @@ export interface UpdateBlogPayload {
   id: string;
   title: string;
   content: string;
-  images?: File[];
   image_urls?: string[];
+  images?: File[];
 }
 
 export interface CreateCommentPayload {
@@ -111,8 +111,8 @@ export interface CreateCommentPayload {
 export interface UpdateCommentPayload {
   id: string;
   content: string;
-  images?: File[];
   image_urls?: string[];
+  images?: File[];
 }
 
 export interface UpdateProfilePayload {

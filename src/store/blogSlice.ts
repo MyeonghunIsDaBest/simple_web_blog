@@ -163,37 +163,33 @@ export const createBlog = createAsyncThunk(
 export const updateBlog = createAsyncThunk(
   'blogs/updateBlog',
   async (
-    { id, title, content, images }: { 
-      id: string; 
-      title: string; 
-      content: string; 
-      images?: File[];
+    { id, title, content, image_urls, images }: {
+      id: string;
+      title: string;
+      content: string;
+      image_urls?: string[]; // Final list of image URLs to keep
+      images?: File[]; // New images to upload
     },
     { rejectWithValue }
   ) => {
     try {
-      const updateData: any = { 
-        title, 
+      const updateData: any = {
+        title,
         content,
       };
-      
+
+      let finalImageUrls: string[] = image_urls || [];
+
       // Upload new images if provided
       if (images && images.length > 0) {
         const { data: { user } } = await supabase.auth.getUser();
         const userId = user?.id || null;
-        const imageUrls = await uploadImages(images, userId);
-        
-        // Get existing images
-        const { data: existingBlog } = await supabase
-          .from('blogs')
-          .select('image_urls')
-          .eq('id', id)
-          .single();
-        
-        // Combine existing and new images
-        updateData.image_urls = [...(existingBlog?.image_urls || []), ...imageUrls];
+        const newImageUrls = await uploadImages(images, userId);
+        finalImageUrls = [...finalImageUrls, ...newImageUrls];
       }
-      
+
+      updateData.image_urls = finalImageUrls;
+
       const { data, error } = await supabase
         .from('blogs')
         .update(updateData)
@@ -425,6 +421,82 @@ export const createComment = createAsyncThunk(
   }
 );
 
+// Update comment
+export const updateComment = createAsyncThunk(
+  'blogs/updateComment',
+  async (
+    { id, content, image_urls, images }: {
+      id: string;
+      content: string;
+      image_urls?: string[];
+      images?: File[];
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      // Validate input
+      if (!id) {
+        throw new Error('Comment ID is required');
+      }
+
+      const updateData: any = {
+        content,
+      };
+
+      // Only update image_urls if images are provided or if we're explicitly setting image_urls
+      if (images && images.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || null;
+        const newImageUrls = await uploadImages(images, userId);
+        updateData.image_urls = [...(image_urls || []), ...newImageUrls];
+      } else if (image_urls !== undefined) {
+        // Only set image_urls if it's explicitly provided (including empty array)
+        updateData.image_urls = image_urls;
+      }
+
+      // Update the comment and return the updated data
+      const { data: updatedRows, error: updateError } = await supabase
+        .from('comments')
+        .update(updateData)
+        .eq('id', id)
+        .select();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error('Failed to update comment - you may not have permission to edit this comment');
+      }
+
+      const updatedData = updatedRows[0];
+
+      // Fetch the profile data for the comment author if needed
+      let updatedComment = updatedData;
+      if (updatedData.author_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', updatedData.author_id)
+          .single();
+
+        if (profile) {
+          updatedComment = {
+            ...updatedData,
+            author_username_profile: profile.username,
+            author_avatar_url: profile.avatar_url,
+            author_avatar: profile.avatar_url,
+          };
+        }
+      }
+
+      return updatedComment as Comment;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Delete comment
 export const deleteComment = createAsyncThunk(
   'blogs/deleteComment',
@@ -557,19 +629,36 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Delete comment
-      .addCase(deleteComment.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deleteComment.fulfilled, (state, action: PayloadAction<string>) => {
-        state.loading = false;
-        state.comments = state.comments.filter((comment: Comment) => comment.id !== action.payload);
-      })
-      .addCase(deleteComment.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+       // Update comment
+       .addCase(updateComment.pending, (state) => {
+         state.loading = true;
+         state.error = null;
+       })
+       .addCase(updateComment.fulfilled, (state, action: PayloadAction<Comment>) => {
+         state.loading = false;
+         // Update the comment in local state
+         const index = state.comments.findIndex((comment) => comment.id === action.payload.id);
+         if (index !== -1) {
+           state.comments[index] = action.payload;
+         }
+       })
+       .addCase(updateComment.rejected, (state, action) => {
+         state.loading = false;
+         state.error = action.payload as string;
+       })
+       // Delete comment
+       .addCase(deleteComment.pending, (state) => {
+         state.loading = true;
+         state.error = null;
+       })
+       .addCase(deleteComment.fulfilled, (state, action: PayloadAction<string>) => {
+         state.loading = false;
+         state.comments = state.comments.filter((comment: Comment) => comment.id !== action.payload);
+       })
+       .addCase(deleteComment.rejected, (state, action) => {
+         state.loading = false;
+         state.error = action.payload as string;
+       });
   },
 });
 

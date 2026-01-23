@@ -12,6 +12,7 @@ import {
 } from '../../store/blogSlice';
 import { AppDispatch, RootState } from '../../store';
 import ImageUpload from '../common/imageupload';
+import EditComment from './editcomment';
 
 interface ViewBlogProps {
   blogId: string;
@@ -29,6 +30,8 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
   const [localLikeCount, setLocalLikeCount] = useState(0);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [likingPost, setLikingPost] = useState(false);
+  const [editingComment, setEditingComment] = useState<any>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchBlog(blogId));
@@ -401,31 +404,40 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
                             </div>
                           </div>
 
-                          {isCommentAuthor && (
-                            <button
-                              onClick={() => handleCommentDelete(comment.id)}
-                              className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              Delete
-                            </button>
-                          )}
+                           {isCommentAuthor && (
+                             <div className="flex gap-2">
+                               <button
+                                 onClick={() => setEditingComment(comment)}
+                                 className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                               >
+                                 Edit
+                               </button>
+                               <button
+                                 onClick={() => handleCommentDelete(comment.id)}
+                                 className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                               >
+                                 Delete
+                               </button>
+                             </div>
+                           )}
                         </div>
 
                         <p className="text-gray-700 mb-3 whitespace-pre-wrap leading-relaxed">
                           {comment.content}
                         </p>
 
-                        {/* Comment images - keep grid layout for comments */}
+                        {/* Comment images - with click to expand */}
                         {comment.image_urls && comment.image_urls.length > 0 && (
-                          <div className="grid grid-cols-2 gap-2 mt-3">
-                            {comment.image_urls.map((url, index) => (
-                              <img
-                                key={index}
-                                src={url}
-                                alt={`Comment attachment ${index + 1}`}
-                                className="w-full h-32 object-cover rounded-lg border border-gray-300 shadow-sm"
-                              />
-                            ))}
+                          <div className="grid grid-cols-2 gap-3 mt-4">
+                             {comment.image_urls.map((url, index) => (
+                               <img
+                                 key={index}
+                                 src={url}
+                                 alt={`Comment attachment ${index + 1}`}
+                                 onClick={() => setExpandedImage(url)}
+                                 className="w-full h-48 object-cover rounded-xl border-2 border-gray-300 shadow-md hover:shadow-lg hover:border-blue-400 cursor-pointer transition-all duration-200 hover:scale-[1.02]"
+                               />
+                             ))}
                           </div>
                         )}
                       </div>
@@ -437,6 +449,42 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
           </div>
         </article>
       </div>
+
+      {/* Edit Comment Modal */}
+      {editingComment && (
+        <EditComment
+          comment={editingComment}
+          isOpen={!!editingComment}
+          onClose={() => setEditingComment(null)}
+          onSuccess={() => {
+            dispatch(fetchComments(blogId));
+            setEditingComment(null);
+          }}
+        />
+      )}
+
+      {/* Image Lightbox Modal */}
+      {expandedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button
+              onClick={() => setExpandedImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-xl font-bold bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+            >
+              ✕
+            </button>
+            <img
+              src={expandedImage}
+              alt="Expanded view"
+              className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
