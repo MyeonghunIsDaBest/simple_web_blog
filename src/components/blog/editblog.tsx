@@ -131,7 +131,7 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+              className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 px-6 rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
