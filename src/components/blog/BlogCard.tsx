@@ -86,11 +86,27 @@ const BlogCard: React.FC<BlogCardProps> = React.memo(({ blog, isDark, onClick })
           </h2>
 
           {/* Content Preview */}
-          <p className={`mb-4 line-clamp-3 text-sm leading-relaxed transition-colors ${
+          <p className={`mb-4 ${blog.image_urls && blog.image_urls.length > 0 ? 'line-clamp-3' : 'line-clamp-5'} text-sm leading-relaxed transition-colors ${
             isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
             {blog.content}
           </p>
+
+          {/* No images indicator - for posts without images */}
+          {(!blog.image_urls || blog.image_urls.length === 0) && (
+            <div className={`mb-4 p-4 rounded-lg border-2 border-dashed flex items-center justify-center ${
+              isDark ? 'border-gray-700 bg-gray-800/30' : 'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="text-center">
+                <svg className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className={`text-xs font-medium ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                  Text-only post
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Images - Enhanced Responsive Layout */}
           {blog.image_urls && blog.image_urls.length > 0 && (

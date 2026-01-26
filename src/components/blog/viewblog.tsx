@@ -172,9 +172,9 @@ return (
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-start gap-4">
                 <div className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 shadow-lg ring-4 ring-white ${
-                  currentBlog.is_guest_post 
-                    ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
-                    : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                  currentBlog.is_guest_post
+                    ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+                    : 'bg-gradient-to-br from-gray-500 to-gray-600'
                 }`}>
                   {avatarUrl ? (
                     <img

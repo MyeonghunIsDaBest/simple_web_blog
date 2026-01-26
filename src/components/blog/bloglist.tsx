@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchBlogs } from '../../store/blogSlice';
 import { RootState, AppDispatch } from '../../store';
 import BlogCard from './BlogCard';
+import BlogBoardCard from './BlogBoardCard';
 import BlogCardSkeleton from '../common/BlogCardSkeleton';
 
 interface BlogListProps {
@@ -20,6 +21,7 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'most_comments'>('newest');
   const [filterBy, setFilterBy] = useState<'all' | 'with_images' | 'guest_posts'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
 
   useEffect(() => {
     dispatch(fetchBlogs());
@@ -149,7 +151,7 @@ return (
           </div>
 
           {/* Search and Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search Bar */}
             <div className="md:col-span-1">
               <div className="relative">
@@ -195,8 +197,8 @@ return (
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${
-                  isDark 
-                    ? 'bg-gray-800 border-gray-700 text-gray-100' 
+                  isDark
+                    ? 'bg-gray-800 border-gray-700 text-gray-100'
                     : 'bg-white border-gray-300 text-gray-900'
                 } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
               >
@@ -204,6 +206,48 @@ return (
                 <option value="popular">Most Popular</option>
                 <option value="most_comments">Most Comments</option>
               </select>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div>
+              <div className={`flex rounded-xl border overflow-hidden ${
+                isDark ? 'border-gray-700' : 'border-gray-300'
+              }`}>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex-1 px-4 py-3 font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    viewMode === 'list'
+                      ? isDark
+                        ? 'bg-gray-700 text-gray-100'
+                        : 'bg-gray-200 text-gray-900'
+                      : isDark
+                        ? 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                        : 'bg-white text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span className="hidden sm:inline">List</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('board')}
+                  className={`flex-1 px-4 py-3 font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    viewMode === 'board'
+                      ? isDark
+                        ? 'bg-gray-700 text-gray-100'
+                        : 'bg-gray-200 text-gray-900'
+                      : isDark
+                        ? 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                        : 'bg-white text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                  </svg>
+                  <span className="hidden sm:inline">Board</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -263,7 +307,7 @@ return (
               </button>
             )}
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredAndSortedBlogs.map((blog) => (
               <BlogCard
@@ -271,6 +315,18 @@ return (
                 blog={blog}
                 isDark={isDark}
                 onClick={handleBlogClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredAndSortedBlogs.map((blog, index) => (
+              <BlogBoardCard
+                key={blog.id}
+                blog={blog}
+                isDark={isDark}
+                onClick={handleBlogClick}
+                colorIndex={index}
               />
             ))}
           </div>
