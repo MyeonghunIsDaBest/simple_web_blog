@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchBlogs } from '../../store/blogSlice';
 import { RootState, AppDispatch } from '../../store';
 import BlogCard from './BlogCard';
+import BlogCardSkeleton from '../common/BlogCardSkeleton';
 
 interface BlogListProps {
   onViewBlog: (id: string) => void;
@@ -23,14 +24,37 @@ const BlogList: React.FC<BlogListProps> = ({ onViewBlog, onCreateBlog }) => {
     onViewBlog(id);
   }, [onViewBlog]);
 
-  if (loading) {
+  if (loading && blogs.length === 0) {
     return (
-      <div className={`flex justify-center items-center min-h-screen transition-colors ${
+      <div className={`min-h-screen transition-colors duration-300 ${
         isDark ? 'bg-gray-900' : 'bg-gray-50'
       }`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Loading posts...</div>
+        <div className="container mx-auto px-4 py-8 max-w-5xl">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className={`text-3xl font-bold transition-colors ${
+                isDark ? 'text-gray-100' : 'text-gray-900'
+              }`}>
+                All Posts
+              </h1>
+              <p className={`mt-1 transition-colors ${
+                isDark ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Loading stories from our community...
+              </p>
+            </div>
+            <button
+              disabled
+              className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium text-sm shadow-sm opacity-50 cursor-not-allowed"
+            >
+              New Post
+            </button>
+          </div>
+          <div className="space-y-5">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <BlogCardSkeleton key={index} isDark={isDark} />
+            ))}
+          </div>
         </div>
       </div>
     );

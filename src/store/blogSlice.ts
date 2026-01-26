@@ -13,6 +13,7 @@ import {
   CommentUpdateData,
   getErrorMessage
 } from '../types';
+import { compressImage } from '../utils/imageCompression';
 
 const initialState: BlogState = {
   blogs: [],
@@ -22,17 +23,24 @@ const initialState: BlogState = {
   error: null,
 };
 
-// Helper function to upload images to Supabase Storage in parallel
+// Helper function to upload images to Supabase Storage in parallel with compression
 async function uploadImages(images: File[], userId: string | null): Promise<string[]> {
   // Upload all images in parallel using Promise.all
   const uploadPromises = images.map(async (image) => {
     try {
-      const fileExt = image.name.split('.').pop();
+      // Compress image before upload
+      const compressedImage = await compressImage(image, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
+
+      const fileExt = compressedImage.name.split('.').pop();
       const fileName = `${userId || 'guest'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { error } = await supabase.storage
         .from('blog-images')
-        .upload(fileName, image);
+        .upload(fileName, compressedImage);
 
       if (error) {
         console.error('Image upload error:', error);

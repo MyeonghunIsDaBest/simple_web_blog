@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -66,8 +71,68 @@ body.dark ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
 
-/* Improve focus visibility in dark mode */
+/* Improve focus visibility for accessibility */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 body.dark *:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
+}
+
+/* Loading animation improvements */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, #f6f7f8 4%, #edeef1 25%, #f6f7f8 36%);
+  background-size: 1000px 100%;
+}
+
+body.dark .animate-shimmer {
+  background: linear-gradient(to right, #1f2937 4%, #374151 25%, #1f2937 36%);
+  background-size: 1000px 100%;
+}
+
+/* Image loading placeholder */
+img {
+  background-color: #f3f4f6;
+}
+
+body.dark img {
+  background-color: #374151;
+}
+
+/* Better text rendering */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+}
+
+/* Responsive typography */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
 }

@@ -81,32 +81,34 @@ const BlogCard: React.FC<BlogCardProps> = React.memo(({ blog, isDark, onClick })
           {blog.content}
         </p>
 
-        {/* Images - Centered Layout */}
+        {/* Images - Enhanced Responsive Layout */}
         {blog.image_urls && blog.image_urls.length > 0 && (
-          <div className="mt-4 mb-3">
+          <div className="mt-5 mb-4">
             {blog.image_urls.length === 1 ? (
-              // Single image - centered
+              // Single image - responsive centered with better aspect ratio
               <div className="flex justify-center">
-                <div className="max-w-2xl w-full">
-                  <img
-                    src={blog.image_urls[0]}
-                    alt={blog.title}
-                    className={`w-full h-auto max-h-96 object-contain rounded-lg shadow-sm border ${
-                      isDark ? 'border-gray-700' : 'border-gray-200'
-                    }`}
-                    loading="lazy"
-                  />
+                <div className="w-full max-w-3xl">
+                  <div className="relative w-full overflow-hidden rounded-xl shadow-md" style={{ paddingBottom: '56.25%' }}>
+                    <img
+                      src={blog.image_urls[0]}
+                      alt={blog.title}
+                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
+                        isDark ? 'border-gray-700' : 'border-gray-200'
+                      }`}
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               </div>
             ) : blog.image_urls.length === 2 ? (
-              // Two images - side by side centered
-              <div className="flex justify-center gap-3">
+              // Two images - responsive side by side
+              <div className="grid grid-cols-2 gap-3">
                 {blog.image_urls.map((url, index) => (
-                  <div key={index} className="w-[48%] max-w-sm">
+                  <div key={index} className="relative overflow-hidden rounded-lg shadow-md" style={{ paddingBottom: '75%' }}>
                     <img
                       src={url}
                       alt={`Post ${index + 1}`}
-                      className={`w-full h-48 object-cover rounded-lg shadow-sm border ${
+                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105 border ${
                         isDark ? 'border-gray-700' : 'border-gray-200'
                       }`}
                       loading="lazy"
@@ -115,29 +117,33 @@ const BlogCard: React.FC<BlogCardProps> = React.memo(({ blog, isDark, onClick })
                 ))}
               </div>
             ) : (
-              // Three or more images - grid layout centered
-              <div className="flex justify-center">
-                <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
-                  {blog.image_urls.slice(0, 4).map((url, index) => (
-                    <div key={index} className="relative aspect-square">
-                      <img
-                        src={url}
-                        alt={`Post ${index + 1}`}
-                        className={`w-full h-full object-cover rounded-lg shadow-sm border ${
-                          isDark ? 'border-gray-700' : 'border-gray-200'
-                        }`}
-                        loading="lazy"
-                      />
-                      {index === 3 && blog.image_urls!.length > 4 && (
-                        <div className="absolute inset-0 bg-black bg-opacity-60 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                          <span className="text-white font-bold text-2xl">
-                            +{blog.image_urls!.length - 4}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              // Three or more images - responsive grid
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+                {blog.image_urls.slice(0, 4).map((url, index) => (
+                  <div
+                    key={index}
+                    className={`relative overflow-hidden rounded-lg shadow-md ${
+                      index === 0 && blog.image_urls!.length >= 3 ? 'col-span-2 md:col-span-2' : ''
+                    }`}
+                    style={{ paddingBottom: index === 0 && blog.image_urls!.length >= 3 ? '50%' : '100%' }}
+                  >
+                    <img
+                      src={url}
+                      alt={`Post ${index + 1}`}
+                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105 border ${
+                        isDark ? 'border-gray-700' : 'border-gray-200'
+                      }`}
+                      loading="lazy"
+                    />
+                    {index === 3 && blog.image_urls!.length > 4 && (
+                      <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 hover:bg-opacity-60">
+                        <span className="text-white font-bold text-3xl">
+                          +{blog.image_urls!.length - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
