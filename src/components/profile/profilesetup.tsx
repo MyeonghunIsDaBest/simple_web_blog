@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '../../store/';
+import { AppDispatch, RootState } from '../../store';
 import { updateProfile, uploadAvatar } from '../../store/authSlice';
+import { getErrorMessage } from '../../types';
 
 interface ProfileSetupProps {
   onComplete: () => void;
@@ -62,8 +63,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
 
       await dispatch(updateProfile({ username, avatar_url: avatarUrl })).unwrap();
       onComplete();
-    } catch (err: any) {
-      setError(err || 'Failed to update profile');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to update profile');
     }
   };
 

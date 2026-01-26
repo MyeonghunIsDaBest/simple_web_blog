@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateComment } from '../../store/blogSlice';
-import { AppDispatch } from '../../store/';
+import { AppDispatch } from '../../store';
 import ImageManager from '../common/imagemanager';
-import { Comment } from '../../types';
+import { Comment, getErrorMessage } from '../../types';
 
 interface EditCommentProps {
   comment: Comment;
@@ -48,8 +48,8 @@ const EditComment: React.FC<EditCommentProps> = ({ comment, isOpen, onClose, onS
       })).unwrap();
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err || 'Failed to update comment');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to update comment');
     } finally {
       setLoading(false);
     }

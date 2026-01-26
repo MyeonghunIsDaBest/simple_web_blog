@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, guestLogin, clearError } from '../../store/authSlice';
 import { AppDispatch, RootState } from '../../store';
+import { getErrorMessage } from '../../types';
 
 interface LoginProps {
   onSwitchToRegister: () => void;
@@ -49,9 +50,9 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     try {
       await dispatch(login({ email, password })).unwrap();
       // Success - component will unmount and redirect
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Error is already in Redux state, but we also set it locally
-      setLocalError(err || 'Login failed. Please check your credentials.');
+      setLocalError(getErrorMessage(err) || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -60,8 +61,8 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     dispatch(clearError());
     try {
       await dispatch(guestLogin()).unwrap();
-    } catch (err: any) {
-      setLocalError(err || 'Failed to login as guest');
+    } catch (err: unknown) {
+      setLocalError(getErrorMessage(err) || 'Failed to login as guest');
     }
   };
 

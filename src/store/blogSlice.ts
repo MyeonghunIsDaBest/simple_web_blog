@@ -3,7 +3,16 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { supabase } from '../lib/supabase';
-import { BlogState, Blog, Comment } from '../types';
+import {
+  BlogState,
+  Blog,
+  Comment,
+  BlogInsertData,
+  CommentInsertData,
+  BlogUpdateData,
+  CommentUpdateData,
+  getErrorMessage
+} from '../types';
 
 const initialState: BlogState = {
   blogs: [],
@@ -13,31 +22,39 @@ const initialState: BlogState = {
   error: null,
 };
 
-// Helper function to upload images to Supabase Storage
+// Helper function to upload images to Supabase Storage in parallel
 async function uploadImages(images: File[], userId: string | null): Promise<string[]> {
-  const uploadedUrls: string[] = [];
-  
-  for (const image of images) {
-    const fileExt = image.name.split('.').pop();
-    const fileName = `${userId || 'guest'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    
-    const { error } = await supabase.storage
-      .from('blog-images')
-      .upload(fileName, image);
-    
-    if (error) {
+  // Upload all images in parallel using Promise.all
+  const uploadPromises = images.map(async (image) => {
+    try {
+      const fileExt = image.name.split('.').pop();
+      const fileName = `${userId || 'guest'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error } = await supabase.storage
+        .from('blog-images')
+        .upload(fileName, image);
+
+      if (error) {
+        console.error('Image upload error:', error);
+        return null;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('blog-images')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
       console.error('Image upload error:', error);
-      continue;
+      return null;
     }
-    
-    const { data: urlData } = supabase.storage
-      .from('blog-images')
-      .getPublicUrl(fileName);
-    
-    uploadedUrls.push(urlData.publicUrl);
-  }
-  
-  return uploadedUrls;
+  });
+
+  // Wait for all uploads to complete
+  const results = await Promise.all(uploadPromises);
+
+  // Filter out failed uploads (null values)
+  return results.filter((url): url is string => url !== null);
 }
 
 // Fetch all blogs with counts (using the view)
@@ -52,8 +69,8 @@ export const fetchBlogs = createAsyncThunk(
 
       if (error) throw error;
       return data as Blog[];
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -75,8 +92,8 @@ export const fetchBlog = createAsyncThunk(
       await supabase.rpc('increment_blog_views', { blog_id: id });
       
       return data as Blog;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -108,8 +125,8 @@ export const createBlog = createAsyncThunk(
         imageUrls = await uploadImages(blogData.images, userId);
       }
       
-      let blogInsertData: any;
-      
+      let blogInsertData: BlogInsertData;
+
       if (guestUser) {
         // Guest post
         const guest = JSON.parse(guestUser);
@@ -138,8 +155,8 @@ export const createBlog = createAsyncThunk(
           title: blogData.title,
           content: blogData.content,
           author_id: user.id,
-          author_email: user.email,
-          author_username: profile?.username || user.email,
+          author_email: user.email ?? null,
+          author_username: profile?.username || user.email || null,
           is_guest_post: false,
           image_urls: imageUrls,
         };
@@ -153,8 +170,8 @@ export const createBlog = createAsyncThunk(
 
       if (error) throw error;
       return data as Blog;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -173,11 +190,6 @@ export const updateBlog = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const updateData: any = {
-        title,
-        content,
-      };
-
       let finalImageUrls: string[] = image_urls || [];
 
       // Upload new images if provided
@@ -188,7 +200,11 @@ export const updateBlog = createAsyncThunk(
         finalImageUrls = [...finalImageUrls, ...newImageUrls];
       }
 
-      updateData.image_urls = finalImageUrls;
+      const updateData: BlogUpdateData = {
+        title,
+        content,
+        image_urls: finalImageUrls,
+      };
 
       const { data, error } = await supabase
         .from('blogs')
@@ -199,8 +215,8 @@ export const updateBlog = createAsyncThunk(
 
       if (error) throw error;
       return data as Blog;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -217,8 +233,8 @@ export const deleteBlog = createAsyncThunk(
 
       if (error) throw error;
       return id;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -237,8 +253,8 @@ export const likeBlog = createAsyncThunk(
 
       if (error) throw error;
       return blogId;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -259,8 +275,8 @@ export const unlikeBlog = createAsyncThunk(
 
       if (error) throw error;
       return blogId;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -282,8 +298,8 @@ export const checkIfLiked = createAsyncThunk(
 
       if (error && error.code !== 'PGRST116') throw error;
       return { blogId, liked: !!data };
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -330,7 +346,7 @@ export const fetchComments = createAsyncThunk(
       }
 
       // Map the profile data to comments
-      const comments = commentsData.map((comment: any) => {
+      const comments = commentsData.map((comment: Comment) => {
         const profile = comment.author_id ? profilesMap.get(comment.author_id) : null;
         return {
           ...comment,
@@ -341,8 +357,8 @@ export const fetchComments = createAsyncThunk(
       });
       
       return comments as Comment[];
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -373,8 +389,8 @@ export const createComment = createAsyncThunk(
         imageUrls = await uploadImages(commentData.images, userId);
       }
       
-      let commentInsertData: any;
-      
+      let commentInsertData: CommentInsertData;
+
       if (guestUser) {
         const guest = JSON.parse(guestUser);
         commentInsertData = {
@@ -389,19 +405,19 @@ export const createComment = createAsyncThunk(
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
-        
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('username')
           .eq('id', user.id)
           .single();
-        
+
         commentInsertData = {
           blog_id: commentData.blog_id,
           content: commentData.content,
           author_id: user.id,
-          author_email: user.email,
-          author_username: profile?.username || user.email,
+          author_email: user.email ?? null,
+          author_username: profile?.username || user.email || null,
           is_guest_comment: false,
           image_urls: imageUrls,
         };
@@ -415,8 +431,8 @@ export const createComment = createAsyncThunk(
 
       if (error) throw error;
       return data as Comment;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -439,7 +455,7 @@ export const updateComment = createAsyncThunk(
         throw new Error('Comment ID is required');
       }
 
-      const updateData: any = {
+      const updateData: CommentUpdateData = {
         content,
       };
 
@@ -491,8 +507,8 @@ export const updateComment = createAsyncThunk(
       }
 
       return updatedComment as Comment;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -509,8 +525,8 @@ export const deleteComment = createAsyncThunk(
 
       if (error) throw error;
       return id;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );

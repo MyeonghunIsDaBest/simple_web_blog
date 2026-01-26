@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBlog, updateBlog } from '../../store/blogSlice';
-import { AppDispatch, RootState } from '../../store/';
+import { AppDispatch, RootState } from '../../store';
 import ImageManager from '../common/imagemanager';
+import { getErrorMessage } from '../../types';
 
 interface EditBlogProps {
   blogId: string;
@@ -48,8 +49,8 @@ const EditBlog: React.FC<EditBlogProps> = ({ blogId, onBack }) => {
         images: newImages
       })).unwrap();
       onBack();
-    } catch (err: any) {
-      setError(err || 'Failed to update post');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to update post');
     }
   };
 

@@ -119,3 +119,70 @@ export interface UpdateProfilePayload {
   username?: string;
   avatar_url?: string;
 }
+
+// Database Insert Types
+export interface BlogInsertData {
+  title: string;
+  content: string;
+  author_id: string | null;
+  author_email: string | null;
+  author_username: string | null;
+  is_guest_post: boolean;
+  image_urls: string[];
+}
+
+export interface CommentInsertData {
+  blog_id: string;
+  author_id: string | null;
+  author_email: string | null;
+  author_username: string | null;
+  content: string;
+  image_urls: string[];
+  is_guest_comment: boolean;
+}
+
+// Database Update Types
+export interface BlogUpdateData {
+  title: string;
+  content: string;
+  image_urls: string[];
+}
+
+export interface CommentUpdateData {
+  content: string;
+  image_urls?: string[];
+}
+
+// Error Types
+export interface SupabaseError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
+
+export interface ApiError {
+  message: string;
+  status?: number;
+  code?: string;
+}
+
+// Type guard for error checking
+export function isSupabaseError(error: unknown): error is SupabaseError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as SupabaseError).message === 'string'
+  );
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (isSupabaseError(error)) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}

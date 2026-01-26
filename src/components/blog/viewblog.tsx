@@ -13,6 +13,7 @@ import {
 import { AppDispatch, RootState } from '../../store';
 import ImageUpload from '../common/imageupload';
 import EditComment from './editcomment';
+import { getErrorMessage } from '../../types';
 
 interface ViewBlogProps {
   blogId: string;
@@ -109,9 +110,9 @@ const ViewBlog: React.FC<ViewBlogProps> = ({ blogId, onBack, onEdit }) => {
         setIsLiked(true);
         setLocalLikeCount(prev => prev + 1);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to toggle like:', error);
-      alert(error || 'Failed to update like');
+      alert(getErrorMessage(error) || 'Failed to update like');
     } finally {
       setLikingPost(false);
     }

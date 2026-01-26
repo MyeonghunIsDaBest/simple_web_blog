@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { supabase } from '../lib/supabase';
-import { AuthState, User, Profile } from '../types';
+import { AuthState, User, Profile, getErrorMessage } from '../types';
+import { RootState } from './index';
 
 const initialState: AuthState = {
   user: null,
@@ -33,8 +34,8 @@ export const register = createAsyncThunk(
       }
       
       return data.user as User;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -52,8 +53,8 @@ export const login = createAsyncThunk(
       }
       
       return data.user as User;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -70,8 +71,8 @@ export const guestLogin = createAsyncThunk(
       
       localStorage.setItem('guestUser', JSON.stringify(guestUser));
       return guestUser;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -88,8 +89,8 @@ export const logout = createAsyncThunk(
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
       }
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -115,8 +116,8 @@ export const checkAuth = createAsyncThunk(
       }
       
       return { user: user as User, profile: null };
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -139,8 +140,8 @@ export const fetchProfile = createAsyncThunk(
         throw error;
       }
       return data as Profile;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -149,7 +150,7 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async ({ username, avatar_url }: { username: string; avatar_url: string | null }, { rejectWithValue, getState }) => {
     try {
-      const state = getState() as any;
+      const state = getState() as RootState;
       const userId = state.auth.user?.id;
 
       if (!userId) throw new Error('No user found');
@@ -167,8 +168,8 @@ export const updateProfile = createAsyncThunk(
 
       if (error) throw error;
       return data as Profile;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -177,7 +178,7 @@ export const uploadAvatar = createAsyncThunk(
   'auth/uploadAvatar',
   async (file: File, { rejectWithValue, getState }) => {
     try {
-      const state = getState() as any;
+      const state = getState() as RootState;
       const userId = state.auth.user?.id;
 
       if (!userId) throw new Error('No user found');
@@ -196,8 +197,8 @@ export const uploadAvatar = createAsyncThunk(
         .getPublicUrl(fileName);
 
       return data.publicUrl;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );

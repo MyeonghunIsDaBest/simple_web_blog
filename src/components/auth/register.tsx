@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, guestLogin, clearError } from '../../store/authSlice';
-import { AppDispatch, RootState } from '../../store/';
+import { AppDispatch, RootState } from '../../store';
+import { getErrorMessage } from '../../types';
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
@@ -61,9 +62,9 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
     try {
       await dispatch(register({ email, password, username: username.trim() })).unwrap();
       // Success - component will unmount and redirect
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Error is already in Redux state, but we also set it locally
-      const errorMessage = err || 'Registration failed. Please try again.';
+      const errorMessage = getErrorMessage(err) || 'Registration failed. Please try again.';
       setLocalError(errorMessage);
     }
   };
@@ -73,8 +74,8 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
     dispatch(clearError());
     try {
       await dispatch(guestLogin()).unwrap();
-    } catch (err: any) {
-      setLocalError(err || 'Failed to login as guest');
+    } catch (err: unknown) {
+      setLocalError(getErrorMessage(err) || 'Failed to login as guest');
     }
   };
 
